@@ -1,3 +1,6 @@
+# bed backups
+*.bak
+
 # Prerequisites
 *.d
 
