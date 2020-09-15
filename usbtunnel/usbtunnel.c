@@ -303,8 +303,8 @@ int usb_read(int usbd, vpnx_io_t **io)
 
 void SignalHandler(int sigraised)
 {
-    fprintf(stderr, "\nInterrupted.\n");
-   
+	fprintf(stderr, "\nInterrupted.\n");
+	
     exit(0);
 }
 
@@ -512,158 +512,24 @@ int main(int argc, const char *argv[])
 		}
 	}
     
-    // run loop, just transfer data between usb and tcp connection
-    //
-    while (! result)
-    {
-        io_from_usb = NULL;
-        io_from_tcp = NULL;
-        io_to_usb = NULL;
-        io_to_tcp = NULL;
-
-		if (s_usbd < 0)
-		{		
-	        // Open USB device
-	        //
-	        result = usb_open_device(usbVendor, usbProduct);
-			if (result)
-			{
-				fprintf(stderr, "No USB device, FATAL Error\n");
-				break;
-			}
-		}
-        if (s_mode == VPNX_SERVER)
-        {
-           	// wait for a connection, nothing to do till then
-            //
-            result = tcp_accept_connection(s_server_socket, &s_tcp_socket);
-            if (result)
-            {
-                break;
-            }
-			// got a connection, send the info to USB side
-			//
-		}
-        // read usb data/control packets
+	if (s_usbd < 0)
+	{		
+        // Open USB device
         //
-        result = usb_read(s_usbd, &io_from_usb);
-        if (result)
-        {
-            fprintf(stderr, "USB packet read error\n");
-            break;
-        }
-        if (io_from_usb)
-        {
-            printf("USB read %d type:%d\n", io_from_usb->count, io_from_usb->type);
-			vpnx_dump_packet("USB Rx", io_from_usb, 0);
-			
-            switch (io_from_usb->type)
-            {
-                case VPNX_USBT_MSG:
-                    break;
-                case VPNX_USBT_DATA:
-                    io_to_tcp = io_from_usb;
-                    break;
-                case VPNX_USBT_PING:
-                    break;
-                case VPNX_USBT_SYNC:
-                    break;
-                case VPNX_USBT_CONNECT:
-					printf("USB host connects, Attempt to connect to TCP %s:%u\n", remote_host, port);
-					result = tcp_connect(remote_host, port, &s_tcp_socket);
-					if (result)
-					{
-						fprintf(stderr, "Can't connect to remote host\n");
-						s_tcp_socket = INVALID_SOCKET;
-						
-						// tell USB host the connect failed so it can retry if it wants
-						//
-						io_to_usb->type = VPNX_USBT_CLOSE;
-						io_to_usb->count = 0;
-					}
-					else
-					{
-						printf("Connected!\n");
-						io_to_usb = NULL;
-					}
-                    break;
-                case VPNX_USBT_CLOSE:
-					printf("USB host informs us their TCP connction is closed\n");
-					if (s_tcp_socket != INVALID_SOCKET)
-					{
-						// close ours then too
-						closesocket(s_tcp_socket);
-						s_tcp_socket = INVALID_SOCKET;
-					}
-                    break;
-                default:
-                    fprintf(stderr, "Unimplemented USB packet typ: %d\n", io_from_usb->type);
-                    break;
-            }
-        }
-        // if io_to_tcp, write that
-        //
-        if (io_to_tcp && io_to_tcp->count)
-        {
-            printf("TCP write %d\n", io_to_tcp->count);
-            if (s_tcp_socket != INVALID_SOCKET)
-            {
-                result = tcp_write(s_tcp_socket, io_to_tcp);
-				if (result != 0)
-				{
-					fprintf(stderr, "TCP write failed\n");
-		            // assume TCP connection is closed, so tell USB side
-					closesocket(s_tcp_socket);
-					s_tcp_socket = INVALID_SOCKET;
-					io_to_usb = &io_packet;
-					io_to_usb->count = 0;
-					io_to_usb->type = VPNX_USBT_CLOSE;
-				}
-            }
-            else
-            {
-                printf("Dropping packet of %d bytes, no TCP connection\n", io_to_tcp->count);
-            }
-        }
-		if (! io_to_usb && (s_tcp_socket != INVALID_SOCKET))
+        result = usb_open_device(usbVendor, usbProduct);
+		if (result)
 		{
-	        // read tcp data packets, but only of we aren't already wanting to write usb data
-	        //
-	        result = tcp_read(s_tcp_socket, &io_from_tcp);
-	        if (result)
-	        {
-	            fprintf(stderr, "TCP read error\n");
-	            // assume TCP connection is closed, so tell USB side
-				closesocket(s_tcp_socket);
-				s_tcp_socket = INVALID_SOCKET;
-				io_to_usb = &io_packet;
-				io_to_usb->count = 0;
-				io_to_usb->type = VPNX_USBT_CLOSE;
-	        }
-			else
-			{
-		        // if any data, write it to USB port
-		        //
-		        if (io_from_tcp && io_from_tcp->count)
-		        {
-    		        io_to_usb = io_from_tcp;
-        		    io_to_usb->type = VPNX_USBT_DATA;
-        		}
-			}
+			fprintf(stderr, "No USB device, FATAL Error\n");
 		}
-        if (io_to_usb)
-        {
-			printf("USB write %d type:%d\n", io_to_usb->count, io_to_usb->type);
-			vpnx_dump_packet("USB Tx", io_to_usb, 0);
-            result = usb_write(s_usbd, io_to_usb);
-            if (result)
-            {
-                fprintf(stderr, "USB packet write error\n");
-                break;
-            }
-        }
-    }
-    
+		else
+		{
+			vpnx_run_loop_init((void*)s_usbd);
+		}
+	}
+	while (! result)
+	{
+		result = vpnx_run_loop_slice();
+	}
     if (s_usbd >= 0)
     {
         close(s_usbd);

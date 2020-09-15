@@ -6,10 +6,13 @@ CFLAGS=-g -DLinux -I../common
 
 app: usbtunnel
 
-usbtunnel: usbtunnel.o vpnxtcp.o
+usbtunnel: usbtunnel.o vpnxtcp.o vpnextender.o
 	$(CROSS_CC) -o $@ $(CFLAGS) $^
 
 usbtunnel.o: usbtunnel.c
+	$(CROSS_CC) -c $(CFLAGS) -o $@ $<
+
+vpnextender.o: ../common/vpnextender.c
 	$(CROSS_CC) -c $(CFLAGS) -o $@ $<
 
 vpnxtcp.o: ../common/vpnxtcp.c

@@ -39,6 +39,5 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock);
 int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr);
 int tcp_write(SOCKET sock, vpnx_io_t *io);
 int tcp_read(SOCKET sock, vpnx_io_t **io);
-void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level);
 
 #endif

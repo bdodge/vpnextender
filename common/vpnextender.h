@@ -85,4 +85,11 @@ typedef int SOCKET;
     #define FREE   free
 #endif
 
+extern int usb_write(void *dev, vpnx_io_t *io);
+extern int usb_read(void *dev, vpnx_io_t **io);
+
+void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level);
+int vpnx_run_loop_slice(void);
+int vpnx_run_loop_init(void* usb_device, const char *remote_host, uint16_t remote_port);
+
 #endif

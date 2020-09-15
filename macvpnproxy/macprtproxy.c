@@ -48,14 +48,6 @@ usb_desc_t;
 ///
 static usb_desc_t *gusb_device;
 
-/// TCP server socket
-///
-static SOCKET s_server_socket;
-
-/// THE TCP connection socket
-///
-static SOCKET s_tcp_socket;
-
 static usb_desc_t *create_usb_desc(void)
 {
     usb_desc_t *desc;
@@ -621,6 +613,7 @@ int usb_read(usb_desc_t *dev, vpnx_io_t **io)
     return 0;
 }
 
+#if 0
 int vpnx_run_loop_slice()
 {
     vpnx_io_t   *io_from_usb;
@@ -739,6 +732,7 @@ int vpnx_run_loop_slice()
     }
     return 0;
 }
+#endif
 
 #ifdef OSX
 static void run_loop_timer_callback(CFRunLoopTimerRef timer, void *info)
@@ -978,6 +972,9 @@ int main(int argc, const char *argv[])
                 fprintf(stderr, "Can't open usb device\n");
                 break;
             }
+			else
+			{
+				vpnx_run_loop_init((void*)gusb_device);
         }
         if (s_mode == VPNX_SERVER)
         {
