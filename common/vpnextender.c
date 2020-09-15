@@ -16,6 +16,7 @@ static SOCKET s_tcp_socket;
 
 char s_remote_host[1024];
 uint16_t s_remote_port;
+static int s_mode;
 
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
 {
@@ -114,6 +115,8 @@ int vpnx_run_loop_slice()
             return result;
         }
 	}
+    printf("smode=%d server=%d  tcpcock=%d ivs=%d", s_mode, VPNX_SERVER, s_tcp_socket, INVALID_SOCKET);
+    
     // read usb data/control packets
     //
     result = usb_read(s_usb_device, &io_from_usb);
@@ -237,14 +240,34 @@ int vpnx_run_loop_slice()
 	return result;
 }
 
-int vpnx_run_loop_init(void* usb_device, const char *remote_host, uint16_t remote_port)
+int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port)
 {
+    int result;
+    
+    s_mode = mode;
 	s_usb_device = usb_device;
 	s_server_socket = INVALID_SOCKET;
 	s_tcp_socket = INVALID_SOCKET;
 	strncpy(s_remote_host, remote_host, sizeof(s_remote_host) - 1);
 	s_remote_host[sizeof(s_remote_host) - 1] = '\0';
 	s_remote_port = remote_port;
+    if (s_mode == VPNX_SERVER)
+    {
+        // if server-mode, listen for connections on our local port
+        //
+        result = tcp_listen_on_port(s_remote_port, &s_server_socket);
+        if (result)
+        {
+            return result;
+        }
+    }
+    else
+    {
+        // if client-mode, connect to remote host if specified
+        // (remote host/port can come from LAN pc via USB(connect) message later)
+        //
+        // [TODO]
+    }
     return 0;
 }
 

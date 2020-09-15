@@ -615,127 +615,6 @@ int usb_read(void *pdev, vpnx_io_t **io)
     return 0;
 }
 
-#if 0
-int vpnx_run_loop_slice()
-{
-    vpnx_io_t   *io_from_usb;
-    vpnx_io_t   *io_from_tcp;
-    vpnx_io_t   *io_to_usb;
-    vpnx_io_t   *io_to_tcp;
-    int result;
-
-    // run loop, just transfer data between usb and tcp connection
-    //
-    io_from_usb = NULL;
-    io_from_tcp = NULL;
-    io_to_usb = NULL;
-    io_to_tcp = NULL;
-
-    if (s_mode == VPNX_SERVER && s_tcp_socket == INVALID_SOCKET)
-    {
-        vpnx_io_t io_connected;
-        
-        // wait for a connection, nothing to do till then
-        //
-        result = tcp_accept_connection(s_server_socket, &s_tcp_socket);
-        if (result)
-        {
-            return result;
-        }
-        // got us a live one. tell the USB side to connect
-        //
-        io_connected.type = VPNX_USBT_CONNECT;
-        io_connected.count = 0;
-        io_connected.srcport = 0xDEAD;
-        io_connected.dstport = 0xBEEF;
-        
-        result = usb_write(gusb_device, &io_connected);
-        if (result)
-        {
-            fprintf(stderr, "USB[connect] write failed\n");
-            return result;
-        }
-    }
-    // read usb data/control packets
-    //
-    result = usb_read(gusb_device, &io_from_usb);
-    if (result)
-    {
-        fprintf(stderr, "USB packet read error\n");
-        return result;
-        
-    }
-    if (io_from_usb)
-    {
-        printf("USB  read %d type:%d\n", io_from_usb->count, io_from_usb->type);
-        switch (io_from_usb->type)
-        {
-            case VPNX_USBT_MSG:
-                break;
-            case VPNX_USBT_DATA:
-                io_to_tcp = io_from_usb;
-                break;
-            case VPNX_USBT_PING:
-                break;
-            case VPNX_USBT_SYNC:
-                break;
-            case VPNX_USBT_CONNECT:
-                break;
-            case VPNX_USBT_CLOSE:
-                break;
-            default:
-                fprintf(stderr, "Unimplemented USB packet typ: %d\n", io_from_usb->type);
-                break;
-        }
-    }
-    // if io_to_tcp, write that
-    //
-    if (io_to_tcp && io_to_tcp->count)
-    {
-        printf("TCP write %d\n", io_to_tcp->count);
-        if (s_tcp_socket != INVALID_SOCKET)
-        {
-            result = tcp_write(s_tcp_socket, io_to_tcp);
-        }
-        else
-        {
-            printf("Dropping packet of %d bytes, no TCP connection\n", io_to_tcp->count);
-        }
-    }
-    if (! io_to_usb && s_tcp_socket != INVALID_SOCKET)
-    {
-        // read tcp data packets
-        //
-        //printf("will read TCP\n");
-        result = tcp_read(s_tcp_socket, &io_from_tcp);
-        if (result)
-        {
-            fprintf(stderr, "TCP read error\n");
-            return result;
-        }
-    }
-    // if any data, write it to USB port
-    //
-    if (io_from_tcp && io_from_tcp->count)
-    {
-        printf("TCP read %d\n", io_from_tcp->count);
-        io_to_usb = io_from_tcp;
-        io_to_usb->type = VPNX_USBT_DATA;
-    }
-    if (io_to_usb)
-    {
-        printf("USB write %d\n", io_to_usb->count);
-        result = usb_write(gusb_device, io_to_usb);
-        if (result)
-        {
-            fprintf(stderr, "USB packet write error\n");
-            return result;
-        }
-    }
-    return 0;
-}
-#endif
-
 #ifdef OSX
 static void run_loop_timer_callback(CFRunLoopTimerRef timer, void *info)
 {
@@ -795,10 +674,9 @@ static int useage(const char *progname)
     return -1;
 }
 
-static SOCKET s_server_socket;
-
 int main(int argc, const char *argv[])
 {
+    int         mode;
     char        remote_host[256];
     uint16_t    port;
     bool        secure;
@@ -819,7 +697,7 @@ int main(int argc, const char *argv[])
     remote_host[0] = '\0';
     port = 2222;
     secure = false;
-    s_mode = VPNX_CLIENT;
+    mode = VPNX_CLIENT;
     result = 0;
       
     while (argc > 0 && ! result)
@@ -836,10 +714,10 @@ int main(int argc, const char *argv[])
                 switch (arg[argdex++])
                 {
                 case 'c':
-                    s_mode = VPNX_CLIENT;
+                    mode = VPNX_CLIENT;
                     break;
                 case 's':
-                    s_mode = VPNX_SERVER;
+                    mode = VPNX_SERVER;
                     break;
                 case 't':
                     secure = true;
@@ -938,7 +816,7 @@ int main(int argc, const char *argv[])
     
     // sanity check args
     //
-    if (s_mode == VPNX_CLIENT)
+    if (mode == VPNX_CLIENT)
     {
         ;
     }
@@ -975,25 +853,8 @@ int main(int argc, const char *argv[])
             }
 			else
 			{
-				vpnx_run_loop_init((void*)gusb_device, remote_host, port);
+				vpnx_run_loop_init(mode, (void*)gusb_device, remote_host, port);
             }
-        }
-        if (s_mode == VPNX_SERVER)
-        {
-            // if server-mode, listen for connections on our local port
-            //
-            result = tcp_listen_on_port(port, &s_server_socket);
-            if (result)
-            {
-                break;
-            }
-        }
-        else
-        {
-            // if client-mode, connect to remote host if specified
-            // (remote host/port can come from LAN pc via USB(connect) message later)
-            //
-            // [TODO]
         }
     }
     while (0); //catch

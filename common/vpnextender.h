@@ -10,8 +10,6 @@
 #define VPNX_CLIENT (0) ///< connect to remote host/port from VPN from LAN via USB
 #define VPNX_SERVER (1) ///< accept local connections and forward via USB to LAN
 
-static int s_mode;
-
 // default VID/PID of Printer device to look for
 //
 #define kVendorID		0x3f0
@@ -90,6 +88,6 @@ extern int usb_read(void *dev, vpnx_io_t **io);
 
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level);
 int vpnx_run_loop_slice(void);
-int vpnx_run_loop_init(void* usb_device, const char *remote_host, uint16_t remote_port);
+int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port);
 
 #endif
