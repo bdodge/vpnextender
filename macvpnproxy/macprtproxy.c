@@ -18,16 +18,22 @@ typedef struct usb_desc
 
     uint32_t                readPacketSize;     ///< bulk io max packet size (read)
     uint32_t                writePacketSize;    ///< bulk io max packet size (write)
-    
+
+    vpnx_io_t               tx_usb_packet;      ///< buffer for sync Tx  I/O
+    vpnx_io_t               rx_usb_packet[2];   ///< buffer for async Tx  I/O (ping pong)
+    bool                    rx_completed[2];    ///< rx completed state
+    bool                    rx_started[2];      ///< rx started state
+    int                     rx_pong;            ///< which rx buffer is being read
+
 #ifdef Windows
-    HANDLE  hio_wr;
-    HANDLE  hio_rd;
-    HANDLE  hio_ev;
+    HANDLE                  hio_wr;
+    HANDLE                  hio_rd;
+    HANDLE                  hio_ev;
 #elif defined(Linux)
-    struct usb_dev_handle* hio;
-    int     busn;
-    int     devn;
-    int     inum;
+    struct usb_dev_handle  *hio;
+    int                     busn;
+    int                     devn;
+    int                     inum;
 #elif defined(OSX)
     io_object_t				notification;
     IOUSBDeviceInterface	**deviceInterface;
@@ -412,12 +418,6 @@ void DeviceAdded(void *refCon, io_iterator_t iterator)
             destroy_usb_desc(privateDataRef);
         }
     }
-    // if in a run-loop, and found a device, stop the run loop
-    //
-    if (gusb_device)
-    {
-        CFRunLoopStop(CFRunLoopGetCurrent());
-    }
 }
 
 int find_usb_device(long vid, long pid)
@@ -491,6 +491,31 @@ int find_usb_device(long vid, long pid)
     return 0;
 }
 
+void usb_read_complete(void *refCon, IOReturn kr, void *arg0)
+{
+    usb_desc_t *dev = (usb_desc_t *)refCon;
+    uint32_t  rc = (uint32_t)arg0;
+
+    // determine which buffer was being read (should be same as pong!)
+    //
+    if (!dev->rx_started[dev->rx_pong])
+    {
+        fprintf(stderr, "Expected usb rx to buffer %d, but not started?\n", dev->rx_pong);
+    }
+    dev->rx_started[dev->rx_pong] = false;
+    dev->rx_completed[dev->rx_pong] = true;
+                      
+    printf("usb_read_complete packet [%d] with %d bytes, payload of %d\n",
+                    dev->rx_pong, rc, dev->rx_usb_packet[dev->rx_pong].count);
+    
+    if (kr != kIOReturnSuccess)
+    {
+        fprintf(stderr, "Error from asynchronous bulk write (%08x)\n", kr);
+        return;
+    }
+    vpnx_dump_packet("USB Rx", &dev->rx_usb_packet[dev->rx_pong], 0);
+}
+ 
 #endif // OSX
 
 int usb_open_device(long vid, long pid)
@@ -531,32 +556,224 @@ int usb_write(usb_desc_t *dev, vpnx_io_t *io)
     result = (*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, (uint8_t*)io, bytes);
     printf("wrote=%d to ep %d, ret=%08X\n", bytes, dev->wep, result);
 #endif
+    vpnx_dump_packet("USB Tx", io, 0);
     return 0;
 }
 
 int usb_read(usb_desc_t *dev, vpnx_io_t **io)
 {
-    static vpnx_io_t s_usb_packet[2];
-    static int pong = 0;
-    uint32_t count;
-    int result;
+    uint32_t         count;
+    int              result;
     
     count = VPNX_HEADER_SIZE + VPNX_MAX_PACKET_BYTES;
     result = 0;
-#ifdef OSX
-    result = (*dev->usbInterface)->ReadPipe(dev->usbInterface, dev->rep, &s_usb_packet[pong], &count);
-    printf("read=%u from ep %d, ret=%08X\n", (unsigned)count, dev->wep, result);
-    if (result > 0)
+
+    // if the read for the current buffer is complete, return that and kick off another
+    // asynchronous read
+    //
+    if (dev->rx_completed[dev->rx_pong])
     {
-        *io = &s_usb_packet[pong];
-        (*io)->count = count;
-        result = 0;
+        printf("usb read returning buf [%d] \n", dev->rx_pong);
+        dev->rx_started[dev->rx_pong] = false;
+        dev->rx_completed[dev->rx_pong] = false;
+        *io = &dev->rx_usb_packet[dev->rx_pong];
+        dev->rx_pong = dev->rx_pong ? 0 : 1;
     }
-    pong = pong ? 0 : 1;
+    // start another async read operation on current buffer if not started
+    //
+    if (! dev->rx_started[dev->rx_pong])
+    {
+        printf("usb read starting async read on [%d]\n", dev->rx_pong);
+#ifdef OSX
+        CFRunLoopSourceRef  runLoopSource;
+        IOReturn kr;
+        
+        // To receive asynchronous I/O completion notifications, create an event source and
+        // add it to the run loop
+        //
+        kr = (*dev->usbInterface)->CreateInterfaceAsyncEventSource(dev->usbInterface, &runLoopSource);
+
+        if (kr != kIOReturnSuccess)
+        {
+            fprintf(stderr, "Unable to create asynchronous event source (%08x)\n", kr);
+            return -1;
+        }
+        // add our event source to the run loop
+        //
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopDefaultMode);
+
+        kr = (*dev->usbInterface)->ReadPipeAsync(
+                                                 dev->usbInterface,
+                                                 dev->rep,
+                                                 &dev->rx_usb_packet[dev->rx_pong],
+                                                 count,
+                                                 usb_read_complete,
+                                                 (void*)dev
+                                                );
+        if (kr != kIOReturnSuccess)
+        {
+            fprintf(stderr, "Unable to perform asynchronous bulk read (%08x)\n", kr);
+            return -1;
+        }
 #endif
+        dev->rx_started[dev->rx_pong] = true;
+    }
     return 0;
 }
 
+int vpnx_run_loop_slice()
+{
+    vpnx_io_t   *io_from_usb;
+    vpnx_io_t   *io_from_tcp;
+    vpnx_io_t   *io_to_usb;
+    vpnx_io_t   *io_to_tcp;
+    int result;
+
+    // run loop, just transfer data between usb and tcp connection
+    //
+    io_from_usb = NULL;
+    io_from_tcp = NULL;
+    io_to_usb = NULL;
+    io_to_tcp = NULL;
+
+    if (s_mode == VPNX_SERVER && s_tcp_socket == INVALID_SOCKET)
+    {
+        vpnx_io_t io_connected;
+        
+        // wait for a connection, nothing to do till then
+        //
+        result = tcp_accept_connection(s_server_socket, &s_tcp_socket);
+        if (result)
+        {
+            return result;
+        }
+        // got us a live one. tell the USB side to connect
+        //
+        io_connected.type = VPNX_USBT_CONNECT;
+        io_connected.count = 0;
+        io_connected.srcport = 0xDEAD;
+        io_connected.dstport = 0xBEEF;
+        
+        result = usb_write(gusb_device, &io_connected);
+        if (result)
+        {
+            fprintf(stderr, "USB[connect] write failed\n");
+            return result;
+        }
+    }
+    // read usb data/control packets
+    //
+    result = usb_read(gusb_device, &io_from_usb);
+    if (result)
+    {
+        fprintf(stderr, "USB packet read error\n");
+        return result;
+        
+    }
+    if (io_from_usb)
+    {
+        printf("USB  read %d type:%d\n", io_from_usb->count, io_from_usb->type);
+        switch (io_from_usb->type)
+        {
+            case VPNX_USBT_MSG:
+                break;
+            case VPNX_USBT_DATA:
+                io_to_tcp = io_from_usb;
+                break;
+            case VPNX_USBT_PING:
+                break;
+            case VPNX_USBT_SYNC:
+                break;
+            case VPNX_USBT_CONNECT:
+                break;
+            case VPNX_USBT_CLOSE:
+                break;
+            default:
+                fprintf(stderr, "Unimplemented USB packet typ: %d\n", io_from_usb->type);
+                break;
+        }
+    }
+    // if io_to_tcp, write that
+    //
+    if (io_to_tcp && io_to_tcp->count)
+    {
+        printf("TCP write %d\n", io_to_tcp->count);
+        if (s_tcp_socket != INVALID_SOCKET)
+        {
+            result = tcp_write(s_tcp_socket, io_to_tcp);
+        }
+        else
+        {
+            printf("Dropping packet of %d bytes, no TCP connection\n", io_to_tcp->count);
+        }
+    }
+    if (! io_to_usb && s_tcp_socket != INVALID_SOCKET)
+    {
+        // read tcp data packets
+        //
+        //printf("will read TCP\n");
+        result = tcp_read(s_tcp_socket, &io_from_tcp);
+        if (result)
+        {
+            fprintf(stderr, "TCP read error\n");
+            return result;
+        }
+    }
+    // if any data, write it to USB port
+    //
+    if (io_from_tcp && io_from_tcp->count)
+    {
+        printf("TCP read %d\n", io_from_tcp->count);
+        io_to_usb = io_from_tcp;
+        io_to_usb->type = VPNX_USBT_DATA;
+    }
+    if (io_to_usb)
+    {
+        printf("USB write %d\n", io_to_usb->count);
+        result = usb_write(gusb_device, io_to_usb);
+        if (result)
+        {
+            fprintf(stderr, "USB packet write error\n");
+            return result;
+        }
+    }
+    return 0;
+}
+
+#ifdef OSX
+static void run_loop_timer_callback(CFRunLoopTimerRef timer, void *info)
+{
+    int result;
+    
+    result = vpnx_run_loop_slice();
+}
+#endif
+
+int vpnx_run_loop()
+{
+    int result = 0;
+    
+#ifndef OSX
+    // call the slice function repeatedly
+    //
+    do
+    {
+        result = vpnx_run_loop_slice();
+    }
+    while (!result);
+#else
+    CFRunLoopRef runLoop = CFRunLoopGetCurrent();
+    CFRunLoopTimerContext context = {0, NULL, NULL, NULL, NULL};
+    CFRunLoopTimerRef timer = CFRunLoopTimerCreate(kCFAllocatorDefault, 0.1, 0.3, 0, 0, run_loop_timer_callback, &context);
+    CFRunLoopAddTimer(runLoop, timer, kCFRunLoopDefaultMode);
+
+    // call the slice function on a timer inside the main run loop
+    //
+    CFRunLoopRun();
+#endif
+    return result;
+}
+    
 void SignalHandler(int sigraised)
 {
     fprintf(stderr, "\nInterrupted.\n");
@@ -597,17 +814,12 @@ int main(int argc, const char *argv[])
     long	    usbProduct = kProductID;
     sig_t	    oldHandler;
  
-    vpnx_io_t   *io_from_usb;
-    vpnx_io_t   *io_from_tcp;
-    vpnx_io_t   *io_to_usb;
-    vpnx_io_t   *io_to_tcp;
-
     progname = *argv++;
     argc--;
     
     loglevel = 0;
     remote_host[0] = '\0';
-    port = 22;
+    port = 2222;
     secure = false;
     s_mode = VPNX_CLIENT;
     result = 0;
@@ -756,23 +968,22 @@ int main(int argc, const char *argv[])
     
     do //try
     {
-        // Poll for the USB device. It must be present and running before we can do anything, so this blocks
-        //
-        result = usb_open_device(usbVendor, usbProduct);
-
+        if (! gusb_device)
+        {
+            // Poll for the USB device. It must be present and running before we can do anything, so this blocks
+            //
+            result = usb_open_device(usbVendor, usbProduct);
+            if (result)
+            {
+                fprintf(stderr, "Can't open usb device\n");
+                break;
+            }
+        }
         if (s_mode == VPNX_SERVER)
         {
             // if server-mode, listen for connections on our local port
             //
             result = tcp_listen_on_port(port, &s_server_socket);
-            if (result)
-            {
-                break;
-            }
-            
-            // now, wait for a connection, nothing to do till then
-            //
-            result = tcp_accept_connection(s_server_socket, &s_tcp_socket);
             if (result)
             {
                 break;
@@ -788,88 +999,12 @@ int main(int argc, const char *argv[])
     }
     while (0); //catch
     
-    // run loop, just transfer data between usb and tcp connection
-    //
-    while (! result)
+    if (!result)
     {
-        io_from_usb = NULL;
-        io_from_tcp = NULL;
-        io_to_usb = NULL;
-        io_to_tcp = NULL;
-        
-        // read usb data/control packets
+        // run the main loop
         //
-        result = usb_read(gusb_device, &io_from_usb);
-        if (result)
-        {
-            fprintf(stderr, "USB packet read error\n");
-            break;
-        }
-        if (io_from_usb)
-        {
-            printf("USB  read %d type:%d\n", io_from_usb->count, io_from_usb->type);
-            switch (io_from_usb->type)
-            {
-                case VPNX_USBT_MSG:
-                    break;
-                case VPNX_USBT_DATA:
-                    io_to_tcp = io_from_usb;
-                    break;
-                case VPNX_USBT_PING:
-                    break;
-                case VPNX_USBT_SYNC:
-                    break;
-                case VPNX_USBT_CONNECT:
-                    break;
-                case VPNX_USBT_CLOSE:
-                    break;
-                default:
-                    fprintf(stderr, "Unimplemented USB packet typ: %d\n", io_from_usb->type);
-                    break;
-            }
-        }
-        // if io_to_tcp, write that
-        //
-        if (io_to_tcp && io_to_tcp->count)
-        {
-            printf("TCP write %d\n", io_to_tcp->count);
-            if (s_tcp_socket != INVALID_SOCKET)
-            {
-                result = tcp_write(s_tcp_socket, io_to_tcp);
-            }
-            else
-            {
-                printf("Dropping packet of %d bytes, no TCP connection\n", io_to_tcp->count);
-            }
-        }
-        // read tcp data packets
-        //
-        result = tcp_read(s_tcp_socket, &io_from_tcp);
-        if (result)
-        {
-            fprintf(stderr, "TCP read error\n");
-            break;
-        }
-        // if any data, write it to USB port
-        //
-        if (io_from_tcp && io_from_tcp->count)
-        {
-            printf("TCP read %d\n", io_from_tcp->count);
-            io_to_usb = io_from_tcp;
-            io_to_usb->type = VPNX_USBT_DATA;
-        }
-        if (io_to_usb)
-        {
-            printf("USB write %d\n", io_to_usb->count);
-            result = usb_write(gusb_device, io_to_usb);
-            if (result)
-            {
-                fprintf(stderr, "USB packet write error\n");
-                break;
-            }
-        }
+        vpnx_run_loop();
     }
-    
     if (gusb_device)
     {
         destroy_usb_desc(gusb_device);

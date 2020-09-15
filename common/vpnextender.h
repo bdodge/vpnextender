@@ -44,7 +44,7 @@ static int s_mode;
 
 /// The USB data transfer packet type
 ///
-typedef struct tag_vpnx_io
+typedef struct __attribute__((packed)) tag_vpnx_io
 {
     uint32_t    type;
     uint32_t    count;

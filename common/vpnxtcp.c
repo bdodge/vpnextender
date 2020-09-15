@@ -5,12 +5,10 @@
 int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
 {
     struct sockaddr_in serv_addr;
-    #if 0
     #ifdef Windows
     unsigned long nonblock;
     #else
     uint32_t nonblock;
-    #endif
     #endif
     int enable;
     int result;
@@ -35,14 +33,12 @@ int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
     {
         return result;
     }
-    #if 0
-    nonblock = 1;
-    result = ioctl_socket(sock, FIONBIO, &nonblock);
+    nonblock = 0;
+    result = ioctlsocket(sock, FIONBIO, &nonblock);
     if (result < 0)
     {
         return result;
     }
-    #endif
     memset((char *)&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
@@ -55,12 +51,13 @@ int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
         closesocket(sock);
         return result;
     }
-    result = listen(sock, 1);
+    result = listen(sock, 2);
     if (result < 0)
     {
         closesocket(sock);
         fprintf(stderr, "Can't listen on port\n");
     }
+    printf("Listening on port %u for TCP\n", port);
     *socket_ptr = sock;
     return result;
 }
@@ -71,9 +68,13 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
     socklen_t clilen;
     SOCKET clientsock;
 
+    printf("Accepting connections now\n");
+    
     clilen = sizeof(cli_addr);
     clientsock = accept(serversock, (struct sockaddr *)&cli_addr, &clilen);
 
+    printf("Connection: %d\n", clientsock);
+    
     if (clientsock != INVALID_SOCKET)
     {
         #ifdef Windows
@@ -192,5 +193,62 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
 	s_io.count = rc;
 	*io = &s_io;
     return 0;
+}
+
+void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
+{
+    int i, j;
+    char pkt_text[18];
+    uint8_t data;
+
+    printf("Pkt %4d bytes  %s\n", io ? io->count : 0, because);
+
+    if (!io)
+    {
+        printf("<nil>\n");
+        return;
+    }
+    printf("Count=%u bytes\n", io->count);
+    printf("Type=%u\n", io->type);
+
+    if (!io->count)
+    {
+        printf("  <empty>\n");
+        return;
+    }
+    level++;
+
+    for (i = j = 0; i < io->count; i++)
+    {
+        data = io->bytes[i];
+
+        printf("%02X ", data);
+        if (data >= ' ' && data <= '~')
+        {
+            pkt_text[j] = data;
+        }
+        else
+        {
+            pkt_text[j] = '.';
+        }
+        pkt_text[++j] = '\0';
+
+        if (j == 16)
+        {
+            printf( "    | %s |\n", pkt_text);
+            j = 0;
+        }
+    }
+    if (j > 0)
+    {
+        while (j < 16)
+        {
+            printf("   ");
+            pkt_text[j++] = '-';
+        }
+        pkt_text[j] = '\0';
+        printf("    | %s |\n", pkt_text);
+    }
+    printf("\n");
 }
 

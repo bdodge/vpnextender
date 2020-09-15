@@ -7,16 +7,16 @@
       <BreakpointProxy
          BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
          <BreakpointContent
-            uuid = "ED1DFA5A-5329-4805-96EA-5AC4DA4BC95D"
+            uuid = "463C00AE-FC31-40F5-B92F-922C1A2953DE"
             shouldBeEnabled = "No"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "macprtproxy.c"
+            filePath = "../common/vpnxtcp.c"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "813"
-            endingLineNumber = "813"
-            landmarkName = "main(argc, argv)"
+            startingLineNumber = "236"
+            endingLineNumber = "236"
+            landmarkName = "vpnx_dump_packet(because, io, level)"
             landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>
