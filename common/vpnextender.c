@@ -95,7 +95,8 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
         typestr = "CLOS";
         break;
     default:
-        typestr = "????";
+        vpnx_log(1, "dump-packet: bad type %d\n", io->type);
+        return;
         break;
 	}
 	vpnx_log(level, "%s pkt %4d bytes, type=%s\n", because, io ? io->count : 0, typestr);
@@ -105,6 +106,12 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
         vpnx_log(5, "    <empty>\n");
         return;
     }
+    if (io->count > (sizeof(vpnx_io_t) - VPNX_HEADER_SIZE))
+    {
+        vpnx_log(1, "dump-packet: bad count %d\n", io->count);
+        return;
+    }
+        
     level++;
 
     for (i = j = 0; i < io->count; i++)
@@ -198,6 +205,11 @@ int vpnx_run_loop_slice()
 		case VPNX_USBT_MSG:
 			break;
 		case VPNX_USBT_DATA:
+            if (io_from_usb->count > (sizeof(vpnx_io_t) + VPNX_HEADER_SIZE))
+            {
+                vpnx_log(1, "Dropping data packet with bad length %d\n", io_from_usb->count);
+                io_from_usb = NULL;
+            }
 			io_to_tcp = io_from_usb;
 			break;
 		case VPNX_USBT_PING:
@@ -234,6 +246,7 @@ int vpnx_run_loop_slice()
 			break;
 		default:
 			vpnx_log(0, "Unimplemented USB packet typ: %d\n", io_from_usb->type);
+            io_from_usb = NULL;
 			break;
 		}
 	}

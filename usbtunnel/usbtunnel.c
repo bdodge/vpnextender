@@ -254,7 +254,7 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms)
 			return rc;
 		}
 		gotten += rc;
-		vpnx_log(5, "USB got %d more,  %d remaining to get\n", rc, count - gotten);
+		vpnx_log(3, "USB got %d more,  %d remaining to get\n", rc, count - gotten);
 	}
     return count;
 }
@@ -278,10 +278,15 @@ int usb_read(void *pdev, vpnx_io_t **io)
 	{
 		return 0;
 	}
-	vpnx_log(5, "usb hdr type %d  count %d\n", s_io.type, s_io.count);
+	vpnx_log(3, "usb hdr type %d  count %d\n", s_io.type, s_io.count);
 
 	if (s_io.count > 0)
 	{
+		if (s_io.count > VPNX_MAX_PACKET_BYTES)
+		{
+			vpnx_log(1, "usb read: bad packet byte count: %d\n", s_io.count);
+			return -1;
+		}
 		// read packet contents
 		//
 		rc = usb_read_bytes(usbd, s_io.bytes, s_io.count, 15000);

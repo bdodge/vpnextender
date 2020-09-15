@@ -21,6 +21,7 @@ typedef struct usb_desc
 
     vpnx_io_t               tx_usb_packet;      ///< buffer for sync Tx  I/O
     vpnx_io_t               rx_usb_packet[2];   ///< buffer for async Tx  I/O (ping pong)
+    int                     rx_usb_count[2];    ///< incremental count of rx bytes
     bool                    rx_completed[2];    ///< rx completed state
     bool                    rx_started[2];      ///< rx started state
     int                     rx_pong;            ///< which rx buffer is being read
@@ -371,7 +372,7 @@ void DeviceAdded(void *refCon, io_iterator_t iterator)
                 //
                 if (privateDataRef->rep && privateDataRef->wep)
                 {
-                    vpnx_log(2, "Found a USB device\n");
+                    vpnx_log(2, "Found USB tunnel device\n");
                     privateDataRef->usbInterface = usbInterface;
                     gusb_device = privateDataRef;
                     break;
@@ -480,18 +481,34 @@ void usb_read_complete(void *refCon, IOReturn kr, void *arg0)
         vpnx_log(0, "Expected usb rx to buffer %d, but not started?\n", dev->rx_pong);
     }
     dev->rx_started[dev->rx_pong] = false;
-    dev->rx_completed[dev->rx_pong] = true;
-                      
-    vpnx_log(4, "usb_read_complete packet [%d] with %d bytes, payload of %d\n",
+                          
+    vpnx_log(4, "usb_read_complete [%d] with %d more bytes, payload is %d\n",
                     dev->rx_pong, rc, dev->rx_usb_packet[dev->rx_pong].count);
-    
+
+    /*
+    if (dev->rx_usb_count[dev->rx_pong] == 0)
+    {
+        vpnx_dump_packet("usb rx first packet\n", &dev->rx_usb_packet[dev->rx_pong], 3);
+    }
+    */
     if (kr != kIOReturnSuccess)
     {
-        vpnx_log(0, "Error from asynchronous bulk write (%08x)\n", kr);
+        vpnx_log(0, "Error from asynchronous bulk read (%08x)\n", kr);
         return;
     }
+    // count this chunk towards packet
+    //
+    dev->rx_usb_count[dev->rx_pong] += rc;
+    
+    if (dev->rx_usb_count[dev->rx_pong] >= dev->rx_usb_packet[dev->rx_pong].count)
+    {
+        // have gotten enough to complete the packet, all done
+        //
+        vpnx_log(4, "usb packet [%d] complete\n", dev->rx_pong);
+        dev->rx_completed[dev->rx_pong] = true;
+        dev->rx_usb_count[dev->rx_pong] = 0;
+    }
 }
- 
 #endif // OSX
 
 int usb_open_device(long vid, long pid)
@@ -524,24 +541,43 @@ int usb_open_device(long vid, long pid)
 int usb_write(void *pdev, vpnx_io_t *io)
 {
     usb_desc_t *dev = (usb_desc_t *)pdev;
-    int bytes;
+    uint8_t *psend;
+    int tosend;
+    int sent;
+    int chunk;
     int result;
     
-    bytes = io->count + VPNX_HEADER_SIZE;
+    tosend = io->count + VPNX_HEADER_SIZE;
+    psend = (uint8_t *)io;
+    sent = 0;
+    result = 0;
     
+    // break write into chunks of transport packet size
+    //
+    while (sent < tosend && result == 0)
+    {
+        chunk = dev->writePacketSize;
+        if (chunk > (tosend - sent))
+        {
+            chunk = tosend - sent;
+        }
 #ifdef OSX
-    result = (*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, (uint8_t*)io, bytes);
+        if ((*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend, chunk) != kIOReturnSuccess)
+        {
+            result = -1;
+        }
 #endif
+        psend += chunk;
+        sent += chunk;
+    }
     return 0;
 }
 
 int usb_read(void *pdev, vpnx_io_t **io)
 {
     usb_desc_t *dev = (usb_desc_t *)pdev;
-    uint32_t count;
-    int      result;
+    int result;
     
-    count = VPNX_HEADER_SIZE + VPNX_MAX_PACKET_BYTES;
     result = 0;
 
     // if the read for the current buffer is complete, return that and kick off another
@@ -552,6 +588,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
         vpnx_log(4, "usb read returning buf [%d] \n", dev->rx_pong);
         dev->rx_started[dev->rx_pong] = false;
         dev->rx_completed[dev->rx_pong] = false;
+        dev->rx_usb_count[dev->rx_pong] = 0;
         *io = &dev->rx_usb_packet[dev->rx_pong];
         dev->rx_pong = dev->rx_pong ? 0 : 1;
     }
@@ -559,7 +596,31 @@ int usb_read(void *pdev, vpnx_io_t **io)
     //
     if (! dev->rx_started[dev->rx_pong])
     {
-        vpnx_log(4, "usb read starting async read on [%d]\n", dev->rx_pong);
+        int have;
+        int remaining;
+        
+        have = dev->rx_usb_count[dev->rx_pong];
+        if (have > 0)
+        {
+            remaining = dev->rx_usb_packet[dev->rx_pong].count - have;
+            if (remaining > dev->readPacketSize)
+            {
+                if (remaining > VPNX_MAX_PACKET_BYTES)
+                {
+                    vpnx_log(0, "usb read dropping corrupt count buffer\n");
+                    return -1;
+                }
+            }
+            // always read a full packet
+            //
+            remaining = dev->readPacketSize;
+        }
+        else
+        {
+            remaining = dev->readPacketSize; //VPNX_HEADER_SIZE;
+        }
+        vpnx_log(4, "usb read %sstarting async read on [%d] for %d\n", have ? "re-" : "", dev->rx_pong, remaining);
+        dev->rx_started[dev->rx_pong] = true;
 #ifdef OSX
         CFRunLoopSourceRef  runLoopSource;
         IOReturn kr;
@@ -581,8 +642,8 @@ int usb_read(void *pdev, vpnx_io_t **io)
         kr = (*dev->usbInterface)->ReadPipeAsync(
                                                  dev->usbInterface,
                                                  dev->rep,
-                                                 &dev->rx_usb_packet[dev->rx_pong],
-                                                 count,
+                                                 ((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have,
+                                                 remaining,
                                                  usb_read_complete,
                                                  (void*)dev
                                                 );
@@ -592,7 +653,6 @@ int usb_read(void *pdev, vpnx_io_t **io)
             return -1;
         }
 #endif
-        dev->rx_started[dev->rx_pong] = true;
     }
     return 0;
 }
@@ -621,7 +681,7 @@ int vpnx_run_loop()
 #else
     CFRunLoopRef runLoop = CFRunLoopGetCurrent();
     CFRunLoopTimerContext context = {0, NULL, NULL, NULL, NULL};
-    CFRunLoopTimerRef timer = CFRunLoopTimerCreate(kCFAllocatorDefault, 0.1, 0.3, 0, 0, run_loop_timer_callback, &context);
+    CFRunLoopTimerRef timer = CFRunLoopTimerCreate(kCFAllocatorDefault, 0.01, 0.01, 0, 0, run_loop_timer_callback, &context);
     CFRunLoopAddTimer(runLoop, timer, kCFRunLoopDefaultMode);
 
     // call the slice function on a timer inside the main run loop
