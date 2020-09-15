@@ -224,6 +224,11 @@ int tcp_write(SOCKET sock, vpnx_io_t *io)
 #endif
             return wc;
         }
+        if (wc == 0)
+        {
+            fprintf(stderr, "TCP connection closed on write\n");
+            return -1;
+        }
         sent += wc;
     }
     while (sent < io->count);
