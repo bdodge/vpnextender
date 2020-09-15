@@ -46,14 +46,6 @@ static int s_tunnel_port = 22;
 ///
 static int s_usbd = -1;
 
-/// TCP server socket
-///
-static SOCKET s_server_socket;
-
-/// THE TCP connection socket
-///
-static SOCKET s_tcp_socket;
-
 static int s_connected, s_rxcnt, s_txcnt;
 
 #if 1
@@ -162,8 +154,9 @@ int usb_open_device(long vid, long pid)
    	return 0;
 }
 
-int usb_write(int usbd, vpnx_io_t *io)
+int usb_write(void *pdev, vpnx_io_t *io)
 {
+	int usbd = (int)(uintptr_t)pdev;
 	uint8_t *psend;
 	int tosend;
     int sent;
@@ -267,8 +260,9 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms)
     return count;
 }
 
-int usb_read(int usbd, vpnx_io_t **io)
+int usb_read(void *pdev, vpnx_io_t **io)
 {
+	int usbd = (int)(uintptr_t)pdev;
 	static vpnx_io_t s_io;
     int rc;
     
@@ -328,6 +322,7 @@ static int useage(const char *progname)
 
 int main(int argc, const char *argv[])
 {
+	int         mode;
     char        remote_host[256];
     uint16_t    port;
     bool        secure;
@@ -355,11 +350,8 @@ int main(int argc, const char *argv[])
     remote_host[0] = '\0';
     port = 22;
     secure = false;
-    s_mode = VPNX_CLIENT;
+    mode = VPNX_CLIENT;
     result = 0;
-    
-    s_server_socket = INVALID_SOCKET;
-    s_tcp_socket = INVALID_SOCKET;
     
     while (argc > 0 && ! result)
     {
@@ -375,10 +367,10 @@ int main(int argc, const char *argv[])
                 switch (arg[argdex++])
                 {
                 case 'c':
-                    s_mode = VPNX_CLIENT;
+                    mode = VPNX_CLIENT;
                     break;
                 case 's':
-                    s_mode = VPNX_SERVER;
+                    mode = VPNX_SERVER;
                     break;
                 case 't':
                     secure = true;
@@ -477,7 +469,7 @@ int main(int argc, const char *argv[])
     
     // sanity check args
     //
-    if (s_mode == VPNX_CLIENT)
+    if (mode == VPNX_CLIENT)
     {
         ;
     }
@@ -501,17 +493,6 @@ int main(int argc, const char *argv[])
     result = 0;
     s_usbd = -1;
 	
-	if (s_mode == VPNX_SERVER)
-	{
-		// if server-mode, listen for connections on our local port
-		//
-		result = tcp_listen_on_port(port, &s_server_socket);
-		if (result)
-		{
-			fprintf(stderr, "Can't serve TCP, FATAL Error\n");
-		}
-	}
-    
 	if (s_usbd < 0)
 	{		
         // Open USB device
@@ -523,7 +504,7 @@ int main(int argc, const char *argv[])
 		}
 		else
 		{
-			vpnx_run_loop_init((void*)s_usbd);
+			vpnx_run_loop_init(mode, (void*)s_usbd, remote_host, port);
 		}
 	}
 	while (! result)
