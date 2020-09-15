@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		B0FED74B250E5BC100273CD9 /* macprtproxy.c in Sources */ = {isa = PBXBuildFile; fileRef = B0FED74A250E5BC100273CD9 /* macprtproxy.c */; };
 		B0FED74D250FE02700273CD9 /* vpnxtcp.c in Sources */ = {isa = PBXBuildFile; fileRef = B0FED74C250FE02700273CD9 /* vpnxtcp.c */; };
+		B0FED7512510773500273CD9 /* vpnextender.c in Sources */ = {isa = PBXBuildFile; fileRef = B0FED74E2510773500273CD9 /* vpnextender.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -27,6 +28,9 @@
 		B0FED73F250E59A500273CD9 /* macvpnproxy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = macvpnproxy; sourceTree = BUILT_PRODUCTS_DIR; };
 		B0FED74A250E5BC100273CD9 /* macprtproxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = macprtproxy.c; sourceTree = SOURCE_ROOT; };
 		B0FED74C250FE02700273CD9 /* vpnxtcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpnxtcp.c; path = ../../common/vpnxtcp.c; sourceTree = "<group>"; };
+		B0FED74E2510773500273CD9 /* vpnextender.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpnextender.c; path = ../../common/vpnextender.c; sourceTree = "<group>"; };
+		B0FED74F2510773500273CD9 /* vpnextender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vpnextender.h; path = ../../common/vpnextender.h; sourceTree = "<group>"; };
+		B0FED7502510773500273CD9 /* vpnxtcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vpnxtcp.h; path = ../../common/vpnxtcp.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +63,9 @@
 		B0FED741250E59A500273CD9 /* macvpnproxy */ = {
 			isa = PBXGroup;
 			children = (
+				B0FED74E2510773500273CD9 /* vpnextender.c */,
+				B0FED74F2510773500273CD9 /* vpnextender.h */,
+				B0FED7502510773500273CD9 /* vpnxtcp.h */,
 				B0FED74C250FE02700273CD9 /* vpnxtcp.c */,
 				B0FED74A250E5BC100273CD9 /* macprtproxy.c */,
 			);
@@ -123,6 +130,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B0FED74B250E5BC100273CD9 /* macprtproxy.c in Sources */,
+				B0FED7512510773500273CD9 /* vpnextender.c in Sources */,
 				B0FED74D250FE02700273CD9 /* vpnxtcp.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

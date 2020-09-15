@@ -537,8 +537,9 @@ int usb_open_device(long vid, long pid)
     return -1;
 }
 
-int usb_write(usb_desc_t *dev, vpnx_io_t *io)
+int usb_write(void *pdev, vpnx_io_t *io)
 {
+    usb_desc_t *dev = (usb_desc_t *)pdev;
     int bytes;
     int result;
     
@@ -552,10 +553,11 @@ int usb_write(usb_desc_t *dev, vpnx_io_t *io)
     return 0;
 }
 
-int usb_read(usb_desc_t *dev, vpnx_io_t **io)
+int usb_read(void *pdev, vpnx_io_t **io)
 {
-    uint32_t         count;
-    int              result;
+    usb_desc_t *dev = (usb_desc_t *)pdev;
+    uint32_t count;
+    int      result;
     
     count = VPNX_HEADER_SIZE + VPNX_MAX_PACKET_BYTES;
     result = 0;
@@ -793,6 +795,8 @@ static int useage(const char *progname)
     return -1;
 }
 
+static SOCKET s_server_socket;
+
 int main(int argc, const char *argv[])
 {
     char        remote_host[256];
@@ -817,10 +821,7 @@ int main(int argc, const char *argv[])
     secure = false;
     s_mode = VPNX_CLIENT;
     result = 0;
-    
-    s_server_socket = INVALID_SOCKET;
-    s_tcp_socket = INVALID_SOCKET;
-    
+      
     while (argc > 0 && ! result)
     {
         arg = *argv++;
@@ -974,7 +975,8 @@ int main(int argc, const char *argv[])
             }
 			else
 			{
-				vpnx_run_loop_init((void*)gusb_device);
+				vpnx_run_loop_init((void*)gusb_device, remote_host, port);
+            }
         }
         if (s_mode == VPNX_SERVER)
         {

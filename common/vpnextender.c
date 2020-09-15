@@ -14,7 +14,7 @@ static SOCKET s_server_socket;
 ///
 static SOCKET s_tcp_socket;
 
-char s_remote_host[MAX_PATH];
+char s_remote_host[1024];
 uint16_t s_remote_port;
 
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
@@ -245,5 +245,6 @@ int vpnx_run_loop_init(void* usb_device, const char *remote_host, uint16_t remot
 	strncpy(s_remote_host, remote_host, sizeof(s_remote_host) - 1);
 	s_remote_host[sizeof(s_remote_host) - 1] = '\0';
 	s_remote_port = remote_port;
+    return 0;
 }
 
