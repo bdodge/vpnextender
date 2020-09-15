@@ -106,7 +106,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
         vpnx_log(5, "    <empty>\n");
         return;
     }
-    if (io->count > (sizeof(vpnx_io_t) - VPNX_HEADER_SIZE))
+    if (io->count > VPNX_MAX_PACKET_BYTES)
     {
         vpnx_log(1, "dump-packet: bad count %d\n", io->count);
         return;
@@ -116,7 +116,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
 
     for (i = j = 0; i < io->count; i++)
     {
-        data = io->bytes[i];
+        data = ((uint8_t*)io)[i]; //io->bytes[i];
 
         vpnx_log(level, "%02X ", data);
         if (data >= ' ' && data <= '~')
@@ -181,7 +181,8 @@ int vpnx_run_loop_slice()
         io_packet.srcport = 0xDEAD;
         io_packet.dstport = 0xBEEF;
         
-        vpnx_dump_packet("USB Tx[connect]", io_to_usb, 3);
+        vpnx_dump_packet("USB Tx[connect]", &io_packet, 3);
+
         result = usb_write(s_usb_device, &io_packet);
         if (result)
         {
@@ -206,7 +207,7 @@ int vpnx_run_loop_slice()
         case VPNX_USBT_MSG:
             break;
         case VPNX_USBT_DATA:
-            if (io_from_usb->count > (sizeof(vpnx_io_t) + VPNX_HEADER_SIZE))
+            if (io_from_usb->count > VPNX_MAX_PACKET_BYTES)
             {
                 vpnx_log(1, "Dropping data packet with bad length %d\n", io_from_usb->count);
                 io_from_usb = NULL;
@@ -278,7 +279,7 @@ int vpnx_run_loop_slice()
     }
     if (!io_to_usb && (s_tcp_socket != INVALID_SOCKET))
     {
-        // read tcp data packets, but only of we aren't already wanting to write usb data
+        // read tcp data packets, but only if we aren't already wanting to write usb data already
         //
         result = tcp_read(s_tcp_socket, &io_from_tcp);
         if (result)

@@ -631,7 +631,7 @@ void usb_read_complete(void *refCon, IOReturn kr, void *arg0)
     //
     dev->rx_usb_count[dev->rx_pong] += rc;
     
-    if (dev->rx_usb_count[dev->rx_pong] >= dev->rx_usb_packet[dev->rx_pong].count)
+    if (dev->rx_usb_count[dev->rx_pong] >= VPNX_PACKET_SIZE/*dev->rx_usb_packet[dev->rx_pong].count*/)
     {
         // have gotten enough to complete the packet, all done
         //
@@ -675,44 +675,37 @@ int usb_write(void *pdev, vpnx_io_t *io)
     uint8_t *psend;
     int tosend;
     int sent;
-    int chunk;
-    int result;
+    int wc;
     
-    tosend = io->count + VPNX_HEADER_SIZE;
+    tosend = VPNX_PACKET_SIZE; //io->count + VPNX_HEADER_SIZE;
     psend = (uint8_t *)io;
     sent = 0;
-    result = 0;
     
     // break write into chunks of transport packet size
     //
-    while (sent < tosend && result == 0)
+    while (sent < tosend)
     {
-        chunk = dev->writePacketSize;
-        if (chunk > (tosend - sent))
-        {
-            chunk = tosend - sent;
-        }
 #ifdef Linux
-		result = usb_bulk_write(dev->hio, dev->wep, (char*)psend, chunk, 5000);
-		if (result < 0)
+		//vpnx_log(2, "usb gonna write %d\n", tosend - sent);
+		wc = usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, tosend - sent, 5000);
+		if (wc < 0)
 		{
-			vpnx_log(0, "usb write failed: %d\n", result);
-			return result;
+			vpnx_log(0, "usb write failed: %d\n", wc);
+			return wc;
 		}
-		if (result != chunk)
-		{
-			chunk = result;
-		}
-		result = 0;
+		//vpnx_log(2, "usb wrote %d\n", wc);
+		// flush
+		usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, 0, 0);
 #endif
 #ifdef OSX
-        if ((*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend, chunk) != kIOReturnSuccess)
+        if ((*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend, tosend - sent) != kIOReturnSuccess)
         {
-            result = -1;
+			vpnx_log(0, "usb write failed\n");
+            wc = -1;
+			return -1;
         }
 #endif
-        psend += chunk;
-        sent += chunk;
+        sent += wc;
     }
     return 0;
 }
@@ -746,24 +739,22 @@ int usb_read(void *pdev, vpnx_io_t **io)
         have = dev->rx_usb_count[dev->rx_pong];
         if (have > 0)
         {
-            remaining = dev->rx_usb_packet[dev->rx_pong].count - have;
-            if (remaining > dev->readPacketSize)
-            {
-                if (remaining > VPNX_MAX_PACKET_BYTES)
-                {
-                    vpnx_log(0, "usb read dropping corrupt count buffer\n");
-                    return -1;
-                }
-            }
-            // always read a full packet
-            //
-            remaining = dev->readPacketSize;
+            remaining = VPNX_PACKET_SIZE/*dev->rx_usb_packet[dev->rx_pong].count*/ - have;
         }
         else
         {
-            remaining = dev->readPacketSize; //VPNX_HEADER_SIZE;
+			// read a full packet
+            remaining = VPNX_PACKET_SIZE;
         }
+        // always read multiples of actual transport packet size
+        //
+		/*
+        remaining += dev->readPacketSize - 1;
+		remaining /= dev->readPacketSize;
+		remaining *= dev->readPacketSize;
+		*/
         vpnx_log(5, "usb read %sstarting async read on [%d] for %d\n", have ? "re-" : "", dev->rx_pong, remaining);
+		
         dev->rx_started[dev->rx_pong] = true;
 #ifdef Linux
 		result = usb_bulk_read(
@@ -771,7 +762,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
 								dev->rep,
 								((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have,
 								remaining,
-								10 /* 10ms timeout */
+								have ? 1500 : 10 /* 10ms timeout for first buffer*/
 								);
 	    if (result == -ETIMEDOUT)
 	    {
@@ -782,12 +773,12 @@ int usb_read(void *pdev, vpnx_io_t **io)
 			vpnx_log(0, "usb read failed: %d\n", result);
 			return result;
 		}
-		vpnx_log(2, "usb read %d more\n", result);
+		vpnx_log(5, "usb read %d more\n", result);
 		if (result > 0)
 		{
 			dev->rx_usb_count[dev->rx_pong] += result;
 	        dev->rx_started[dev->rx_pong] = false;
-		    if (dev->rx_usb_count[dev->rx_pong] >= dev->rx_usb_packet[dev->rx_pong].count)
+		    if (dev->rx_usb_count[dev->rx_pong] >= VPNX_PACKET_SIZE/*dev->rx_usb_packet[dev->rx_pong].count*/)
 		    {
 		        // have gotten enough to complete the packet, all done
 		        //
@@ -795,6 +786,10 @@ int usb_read(void *pdev, vpnx_io_t **io)
 		        dev->rx_completed[dev->rx_pong] = true;
 		        dev->rx_usb_count[dev->rx_pong] = 0;
 		    }
+		}
+		else
+		{
+        	dev->rx_started[dev->rx_pong] = false;
 		}
 #endif
 #ifdef OSX

@@ -166,9 +166,9 @@ int usb_write(void *pdev, vpnx_io_t *io)
     int waitms = 15000;
     
 	psend = (uint8_t *)io;
-	tosend = io->count + VPNX_HEADER_SIZE;
+	tosend = VPNX_PACKET_SIZE; //io->count + VPNX_HEADER_SIZE;
     sent = 0;
-    
+	
 	while (sent < tosend)
     {
         FD_ZERO (&wfds);
@@ -199,7 +199,8 @@ int usb_write(void *pdev, vpnx_io_t *io)
             return wc;
         }
         sent += wc;
-    }    
+		vpnx_log(5, "usbchunk=%d, %d to go\n", wc, tosend - sent);
+    }
     return 0;
 }
 
@@ -213,7 +214,7 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms, bool blo
     
     FD_ZERO (&rfds);
     FD_SET  (fd, &rfds);
-
+	
 	gotten = 0;
 	while (gotten < count)
 	{
@@ -236,11 +237,7 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms, bool blo
 			}
 	        return 0;
 	    }
-		// got SOME data, so make sure we get complete header
-		//
-		waitms = 15000;
-		
-	    rc = (int)read(fd, (char*)data + gotten, count - gotten);
+	    rc = (int)read(fd, (char*)data + gotten, (count - gotten));
 	    if (rc <= 0)
 	    {
 			if (errno == EAGAIN)
@@ -260,8 +257,15 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms, bool blo
 			//
 			return rc;
 		}
-		gotten += rc;
-		vpnx_log(3, "USB got %d more,  %d remaining to get\n", rc, count - gotten);
+		if (rc)
+		{
+			// got SOME data, so make sure we get complete packet
+			//
+			block = true;
+			waitms = 15000;
+			gotten += rc;
+			vpnx_log(5, "USB got %d more, %d read tot, %d remaining to get\n", rc, gotten, count - gotten);
+		}
 	}
     return count;
 }
@@ -273,34 +277,21 @@ int usb_read(void *pdev, vpnx_io_t **io)
     int rc;
     
 	*io = NULL;
+
+	//vpnx_log(3, "usb read try for %d\n", VPNX_PACKET_SIZE);
 	
-    // short wait for read of header, to keep checking tcp
+    // short wait for read, to keep checking tcp
 	//
-    rc = usb_read_bytes(usbd, (uint8_t*)&s_io, VPNX_HEADER_SIZE, 10, false);	
-	if (rc < 0)
+    rc = usb_read_bytes(usbd, (uint8_t*)&s_io, VPNX_PACKET_SIZE, 10, false);
+	//vpnx_log(3, "Got %d\n", rc);
+	if (rc <= 0)
 	{
 		return rc;
 	}
 	if (rc < VPNX_HEADER_SIZE)
 	{
+		vpnx_log(5, "usb read: short read of only %d\n", rc);
 		return 0;
-	}
-	vpnx_log(3, "usb hdr type %d  count %d\n", s_io.type, s_io.count);
-
-	if (s_io.count > 0)
-	{
-		if (s_io.count > VPNX_MAX_PACKET_BYTES)
-		{
-			vpnx_log(1, "usb read: bad packet byte count: %d\n", s_io.count);
-			return -1;
-		}
-		// read packet contents
-		//
-		rc = usb_read_bytes(usbd, s_io.bytes, s_io.count, 15000, true);
-		if (rc < 0)
-		{
-			return rc;
-		}
 	}
 	*io = &s_io;
     return 0;

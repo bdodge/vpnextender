@@ -28,8 +28,11 @@
 /// the data payload is adjusted down to account for structure header
 /// so the whole thing is some multiple of usb packet size
 ///
+/// ALL usb transfers are in units of this one packet size so even
+/// payloads of 1 byte use the entire packet size, keep that in mind
+///
 #define VPNX_HEADER_SIZE    (2 * sizeof(uint16_t) + 2 * sizeof(uint32_t))
-#define VPNX_PACKET_SIZE    (32768)
+#define VPNX_PACKET_SIZE    (1024)
 #define VPNX_MAX_PACKET_BYTES (VPNX_PACKET_SIZE - VPNX_HEADER_SIZE)
 
 /// types of packets
