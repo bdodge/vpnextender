@@ -267,7 +267,7 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
         return 0;
     }
     rc = (int)recv(sock, (char*)s_io.bytes, (size_t)VPNX_MAX_PACKET_BYTES, 0);
-    if (rc <= 0)
+    if (rc < 0)
     {
 #ifdef Windows
 		if (WSAGetLastError() == WSAEWOULDBLOCK)
@@ -282,6 +282,11 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
 #endif
 		// 0 count after select > 0 means socket closed
         return rc;
+    }
+    if (rc == 0)
+    {
+        fprintf(stderr, "TCP connection closed on read\n");
+        return -1;
     }
 	s_io.type = VPNX_USBT_DATA;
 	s_io.count = rc;
