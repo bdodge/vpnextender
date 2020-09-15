@@ -125,7 +125,7 @@ int usb_open_device(long vid, long pid)
         s_probed = 1;
 
 	    // system("rmmod -f g_multi");
-	    snprintf(sysCmd, 
+	    snprintf(sysCmd, sizeof(sysCmd),
 	            "modprobe g_printer"
 	            " idVendor=%ld idProduct=%ld qlen=16",
 	            vid, pid
@@ -134,7 +134,7 @@ int usb_open_device(long vid, long pid)
     }
     // open the appropriate device for the endpoint
     //
-    snprinf(driverName, sizeof(driverName), "/dev/g_printer0");
+    snprintf(driverName, sizeof(driverName), "/dev/g_printer0");
     if ((s_usbd = open(driverName, O_RDWR, 0666)) < 0)
     {
         vpnx_log(0, "Can't open driver %s\n", driverName);
@@ -149,7 +149,7 @@ int usb_open_device(long vid, long pid)
         iparm = 1;
         ioctl(s_usbd, FIONBIO, (unsigned long*)&iparm);
     }
-    vpnx_log(1, "USB Device %s opened\n", driveName);
+    vpnx_log(1, "USB Device %s opened\n", driverName);
    	return 0;
 }
 
@@ -203,7 +203,7 @@ int usb_write(void *pdev, vpnx_io_t *io)
     return 0;
 }
 
-static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms)
+static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms, bool block)
 {
     int rc;
 	int sv;
@@ -247,7 +247,14 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms)
 			{
 				// confused USB driver doesnt know that select > 0, read == 0 is bad thing
 				//
-				return 0;
+				if (block)
+				{
+					continue;
+				}
+				else
+				{
+					return 0;
+				}
 			}
 			// read of 0 after select of 1 means closed
 			//
@@ -269,7 +276,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
 	
     // short wait for read of header, to keep checking tcp
 	//
-    rc = usb_read_bytes(usbd, (uint8_t*)&s_io, VPNX_HEADER_SIZE, 10);	
+    rc = usb_read_bytes(usbd, (uint8_t*)&s_io, VPNX_HEADER_SIZE, 10, false);	
 	if (rc < 0)
 	{
 		return rc;
@@ -289,7 +296,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
 		}
 		// read packet contents
 		//
-		rc = usb_read_bytes(usbd, s_io.bytes, s_io.count, 15000);
+		rc = usb_read_bytes(usbd, s_io.bytes, s_io.count, 15000, true);
 		if (rc < 0)
 		{
 			return rc;

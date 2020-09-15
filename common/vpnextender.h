@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdarg.h>
 #include <stdbool.h>
 
 #define VPNX_CLIENT (0) ///< connect to remote host/port from VPN from LAN via USB
