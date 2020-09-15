@@ -4,6 +4,10 @@
 # program
 usbtunnel
 
+# xcode state
+macvpnproxy/macvpnproxy.xcodeproj/xcshareddata/
+macvpnproxy/macvpnproxy.xcodeproj/project.xcworkspace/xcuserdata/bdodge.xcuserdatad/UserInterfaceState.xcuserstate
+
 # Prerequisites
 *.d
 
