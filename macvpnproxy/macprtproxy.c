@@ -490,7 +490,6 @@ void usb_read_complete(void *refCon, IOReturn kr, void *arg0)
         vpnx_log(0, "Error from asynchronous bulk write (%08x)\n", kr);
         return;
     }
-    vpnx_dump_packet("USB Rx", &dev->rx_usb_packet[dev->rx_pong], 3);
 }
  
 #endif // OSX
@@ -533,7 +532,6 @@ int usb_write(void *pdev, vpnx_io_t *io)
 #ifdef OSX
     result = (*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, (uint8_t*)io, bytes);
 #endif
-    vpnx_dump_packet("USB Tx", io, 3);
     return 0;
 }
 

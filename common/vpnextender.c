@@ -284,7 +284,7 @@ int vpnx_run_loop_slice()
 			//
 			if (io_from_tcp && io_from_tcp->count)
 			{
-				vpnx_dump_packet("TCP Rx", io_to_tcp, 3);
+				vpnx_dump_packet("TCP Rx", io_from_tcp, 3);
 				io_to_usb = io_from_tcp;
 				io_to_usb->type = VPNX_USBT_DATA;
 			}
