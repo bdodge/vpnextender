@@ -63,6 +63,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
 {
     int i, j;
     char pkt_text[18];
+    const char *typestr;
     uint8_t data;
 
 	if (!io)
@@ -75,8 +76,29 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
 	}
 	switch (io->type)
 	{
+    case VPNX_USBT_MSG:
+        typestr = "MESG";
+        break;
+    case VPNX_USBT_DATA:
+        typestr = "DATA";
+        break;
+    case VPNX_USBT_PING:
+        typestr = "PING";
+        break;
+    case VPNX_USBT_SYNC:
+        typestr = "SYNC";
+        break;
+    case VPNX_USBT_CONNECT:
+        typestr = "CONN";
+        break;
+    case VPNX_USBT_CLOSE:
+        typestr = "CLOS";
+        break;
+    default:
+        typestr = "????";
+        break;
 	}
-	vpnx_log(level, "%s pkt %4d bytes, type=%s\n", because, io ? io->count : 0);
+	vpnx_log(level, "%s pkt %4d bytes, type=%s\n", because, io ? io->count : 0, typestr);
 
     if (!io->count)
     {
@@ -219,10 +241,10 @@ int vpnx_run_loop_slice()
 	//
 	if (io_to_tcp && io_to_tcp->count)
 	{
-		vpnx_dump_packet("TCP Tx", io_to_tcp, 4);
 		if (s_tcp_socket != INVALID_SOCKET)
 		{
-			result = tcp_write(s_tcp_socket, io_to_tcp);
+            vpnx_dump_packet("TCP Tx", io_to_tcp, 3);
+            result = tcp_write(s_tcp_socket, io_to_tcp);
 			if (result != 0)
 			{
 				vpnx_log(0, "TCP write failed, closing connection\n");
@@ -262,7 +284,7 @@ int vpnx_run_loop_slice()
 			//
 			if (io_from_tcp && io_from_tcp->count)
 			{
-				vpnx_dump_packet("TCP Rx", io_to_tcp, 4);
+				vpnx_dump_packet("TCP Rx", io_to_tcp, 3);
 				io_to_usb = io_from_tcp;
 				io_to_usb->type = VPNX_USBT_DATA;
 			}
