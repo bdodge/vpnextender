@@ -114,9 +114,7 @@ int vpnx_run_loop_slice()
             fprintf(stderr, "USB[connect] write failed\n");
             return result;
         }
-	}
-    printf("smode=%d server=%d  tcpcock=%d ivs=%d", s_mode, VPNX_SERVER, s_tcp_socket, INVALID_SOCKET);
-    
+	}    
     // read usb data/control packets
     //
     result = usb_read(s_usb_device, &io_from_usb);
