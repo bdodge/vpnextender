@@ -14,9 +14,50 @@ static SOCKET s_server_socket;
 ///
 static SOCKET s_tcp_socket;
 
+/// remote host to connect to
+///
 char s_remote_host[1024];
+
+/// remote port to connect to
+///
 uint16_t s_remote_port;
+
+/// mode: client or serfver
+///
 static int s_mode;
+
+/// log level, 0 = errors only, 5 = verbose
+///
+static int s_log_level;
+
+void vpnx_log(uint32_t level, const char *fmt, ...)
+{
+    va_list args;
+
+    if (level > s_log_level)
+    {
+        return;
+    }
+    va_start(args, fmt);
+    if (level != 0)
+    {
+        vprintf(fmt, args);
+    }
+    else
+    {
+        vfprintf(stderr, fmt, args);
+    }
+    va_end(args);
+}
+
+void vpnx_set_log_level(uint32_t newlevel)
+{
+	if (newlevel > 5)
+	{
+		newlevel = 5;
+	}
+    s_log_level = newlevel;
+}
 
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
 {
@@ -24,19 +65,22 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
     char pkt_text[18];
     uint8_t data;
 
-    printf("Pkt %4d bytes  %s\n", io ? io->count : 0, because);
-
-    if (!io)
-    {
-        printf("<nil>\n");
-        return;
-    }
-    printf("Count=%u bytes\n", io->count);
-    printf("Type=%u\n", io->type);
+	if (!io)
+	{
+		return;
+	}
+	if (!because)
+	{
+		because = "";
+	}
+	switch (io->type)
+	{
+	}
+	vpnx_log(level, "%s pkt %4d bytes, type=%s\n", because, io ? io->count : 0);
 
     if (!io->count)
     {
-        printf("  <empty>\n");
+        vpnx_log(5, "    <empty>\n");
         return;
     }
     level++;
@@ -45,7 +89,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
     {
         data = io->bytes[i];
 
-        printf("%02X ", data);
+        vpnx_log(level, "%02X ", data);
         if (data >= ' ' && data <= '~')
         {
             pkt_text[j] = data;
@@ -58,7 +102,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
 
         if (j == 16)
         {
-            printf( "    | %s |\n", pkt_text);
+            vpnx_log(level,  "    | %s |\n", pkt_text);
             j = 0;
         }
     }
@@ -66,13 +110,13 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
     {
         while (j < 16)
         {
-            printf("   ");
+            vpnx_log(level, "   ");
             pkt_text[j++] = '-';
         }
         pkt_text[j] = '\0';
-        printf("    | %s |\n", pkt_text);
+        vpnx_log(level, "    | %s |\n", pkt_text);
     }
-    printf("\n");
+    vpnx_log(level, "\n");
 }
 
 int vpnx_run_loop_slice()
@@ -111,7 +155,7 @@ int vpnx_run_loop_slice()
         result = usb_write(s_usb_device, &io_packet);
         if (result)
         {
-            fprintf(stderr, "USB[connect] write failed\n");
+            vpnx_log(0, "USB[connect] write failed\n");
             return result;
         }
 	}    
@@ -120,13 +164,12 @@ int vpnx_run_loop_slice()
     result = usb_read(s_usb_device, &io_from_usb);
     if (result)
     {
-        fprintf(stderr, "USB packet read error\n");
+        vpnx_log(0, "USB packet read error\n");
         return result;
     }
     if (io_from_usb)
     {
-        printf("USB read %d type:%d\n", io_from_usb->count, io_from_usb->type);
-		vpnx_dump_packet("USB Rx", io_from_usb, 0);
+		vpnx_dump_packet("USB Rx", io_from_usb, 3);
 
         switch (io_from_usb->type)
 		{
@@ -140,11 +183,11 @@ int vpnx_run_loop_slice()
 		case VPNX_USBT_SYNC:
 			break;
 		case VPNX_USBT_CONNECT:
-			printf("USB host connects, Attempt to connect to TCP %s:%u\n", s_remote_host, s_remote_port);
+			vpnx_log(1, "USB host connects, Attempt to connect to TCP %s:%u\n", s_remote_host, s_remote_port);
 			result = tcp_connect(s_remote_host, s_remote_port, &s_tcp_socket);
 			if (result)
 			{
-				fprintf(stderr, "Can't connect to remote host\n");
+				vpnx_log(0, "Can't connect to remote host\n");
 				s_tcp_socket = INVALID_SOCKET;
 				
 				// tell USB host the connect failed so it can retry if it wants
@@ -154,12 +197,12 @@ int vpnx_run_loop_slice()
 			}
 			else
 			{
-				printf("Connected!\n");
+				vpnx_log(2, "Connected\n");
 				io_to_usb = NULL;
 			}
 			break;
 		case VPNX_USBT_CLOSE:
-			printf("USB host informs us their TCP connction is closed\n");
+			vpnx_log(1, "USB host informs us their TCP connection is closed\n");
 			if (s_tcp_socket != INVALID_SOCKET)
 			{
 				// close ours then too
@@ -168,7 +211,7 @@ int vpnx_run_loop_slice()
 			}
 			break;
 		default:
-			fprintf(stderr, "Unimplemented USB packet typ: %d\n", io_from_usb->type);
+			vpnx_log(0, "Unimplemented USB packet typ: %d\n", io_from_usb->type);
 			break;
 		}
 	}
@@ -176,13 +219,13 @@ int vpnx_run_loop_slice()
 	//
 	if (io_to_tcp && io_to_tcp->count)
 	{
-		printf("TCP write %d\n", io_to_tcp->count);
+		vpnx_dump_packet("TCP Tx", io_to_tcp, 4);
 		if (s_tcp_socket != INVALID_SOCKET)
 		{
 			result = tcp_write(s_tcp_socket, io_to_tcp);
 			if (result != 0)
 			{
-				fprintf(stderr, "TCP write failed\n");
+				vpnx_log(0, "TCP write failed, closing connection\n");
 				// assume TCP connection is closed, so tell USB side
 				closesocket(s_tcp_socket);
 				s_tcp_socket = INVALID_SOCKET;
@@ -194,7 +237,7 @@ int vpnx_run_loop_slice()
 		}
 		else
 		{
-			printf("Dropping packet of %d bytes, no TCP connection\n", io_to_tcp->count);
+			vpnx_log(2, "Dropping packet of %d bytes, no TCP connection\n", io_to_tcp->count);
 		}
 	}
 	if (!io_to_usb && (s_tcp_socket != INVALID_SOCKET))
@@ -204,7 +247,7 @@ int vpnx_run_loop_slice()
 		result = tcp_read(s_tcp_socket, &io_from_tcp);
 		if (result)
 		{
-			fprintf(stderr, "TCP read error\n");
+			vpnx_log(0, "TCP read failed, closing connection\n");
 			// assume TCP connection is closed, so tell USB side
 			closesocket(s_tcp_socket);
 			s_tcp_socket = INVALID_SOCKET;
@@ -219,6 +262,7 @@ int vpnx_run_loop_slice()
 			//
 			if (io_from_tcp && io_from_tcp->count)
 			{
+				vpnx_dump_packet("TCP Rx", io_to_tcp, 4);
 				io_to_usb = io_from_tcp;
 				io_to_usb->type = VPNX_USBT_DATA;
 			}
@@ -226,12 +270,11 @@ int vpnx_run_loop_slice()
 	}
 	if (io_to_usb)
 	{
-		printf("USB write %d type:%d\n", io_to_usb->count, io_to_usb->type);
-		vpnx_dump_packet("USB Tx", io_to_usb, 0);
+		vpnx_dump_packet("USB Tx", io_to_usb, 3);
 		result = usb_write(s_usb_device, io_to_usb);
 		if (result)
 		{
-			fprintf(stderr, "USB packet write error\n");
+			vpnx_log(0, "USB packet write error\n");
 			return result;
 		}
 	}

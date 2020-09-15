@@ -17,7 +17,7 @@ int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
     {
-        fprintf(stderr, "Can't create server socket\n");
+        vpnx_log(0, "Can't create server socket\n");
         return INVALID_SOCKET;
     }
     
@@ -47,7 +47,7 @@ int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
     result = bind(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (result < 0)
     {
-        fprintf(stderr, "Can't bind server socket to port %u\n", port);
+        vpnx_log(0, "Can't bind server socket to port %u\n", port);
         closesocket(sock);
         return result;
     }
@@ -55,9 +55,9 @@ int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
     if (result < 0)
     {
         closesocket(sock);
-        fprintf(stderr, "Can't listen on port\n");
+        vpnx_log(0, "Can't listen on port\n");
     }
-    printf("Listening on port %u for TCP\n", port);
+    vpnx_log(3, "Listening on port %u for TCP\n", port);
     *socket_ptr = sock;
     return result;
 }
@@ -68,12 +68,12 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
     socklen_t clilen;
     SOCKET clientsock;
 
-    printf("Accepting connections now\n");
+    vpnx_log(3, "Accepting connections now\n");
     
     clilen = sizeof(cli_addr);
     clientsock = accept(serversock, (struct sockaddr *)&cli_addr, &clilen);
 
-    printf("Connection: %d\n", clientsock);
+    vpnx_log(3, "Connection: %d\n", clientsock);
     
     if (clientsock != INVALID_SOCKET)
     {
@@ -85,14 +85,14 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
         nonblock = 1;
         if (ioctlsocket(clientsock, FIONBIO, &nonblock) < 0)
         {
-            fprintf(stderr, "Can't make client socket non-blocking\n");
+            vpnx_log(0, "Can't make client socket non-blocking\n");
             closesocket(clientsock);
             return -1;
         }
 		*clientsock_ptr = clientsock;
 	    return 0;
     }
-	fprintf(stderr, "Accept failed\n");
+	vpnx_log(0, "Accept failed\n");
 	return -1;
 }
 
@@ -112,14 +112,14 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
     {
-        fprintf(stderr, "Can't create server socket\n");
+        vpnx_log(0, "Can't create server socket\n");
         return -1;
     }
 	#if 1
     nonblock = 1;
     if (ioctlsocket(sock, FIONBIO, &nonblock) < 0)
     {
-        fprintf(stderr, "Can't make nonblocking");
+        vpnx_log(0, "Can't make nonblocking");
         closesocket(sock);
         return -1;
     }
@@ -141,7 +141,7 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
 
         if (! hostname)
         {
-            fprintf(stderr, "Can't find address %s\n", host);
+            vpnx_log(0, "Can't find address %s\n", host);
             closesocket(sock);
             return -1;
         }
@@ -151,7 +151,7 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
     {
         if (! inet_aton(host, &serv_addr.sin_addr))
         {
-            fprintf(stderr, "Invalid address %s\n", host);
+            vpnx_log(0, "Invalid address %s\n", host);
             closesocket(sock);
             return -1;
         }
@@ -175,7 +175,7 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
         }
         else
         {
-            fprintf(stderr, "Can't connect to remote host\n");
+            vpnx_log(0, "Can't connect to remote host\n");
             closesocket(sock);
             return -1;
         }
@@ -206,27 +206,27 @@ int tcp_write(SOCKET sock, vpnx_io_t *io)
         sv = select(sock + 1, NULL, &wfds, NULL, &timeout);
         if (sv < 0)
         {
-            fprintf(stderr, "TCP connection broke\n");
+            vpnx_log(0, "TCP connection broke\n");
             return -1;
         }
         if (sv == 0)
         {
-            fprintf(stderr, "TCP connection blocked\n");
+            vpnx_log(0, "TCP connection blocked\n");
             return -1;
         }
         wc = (int)send(sock, (char*)io->bytes + sent, (size_t)(io->count - sent), 0);
         if (wc < 0)
         {
 #ifdef Windows
-            fprintf(stderr, "TCP write err=%d\n", WSAGetLastError());
+            vpnx_log(0, "TCP write err=%d\n", WSAGetLastError());
 #else
-            fprintf(stderr, "TCP write err=%d\n", errno);
+            vpnx_log(0, "TCP write err=%d\n", errno);
 #endif
             return wc;
         }
         if (wc == 0)
         {
-            fprintf(stderr, "TCP connection closed on write\n");
+            vpnx_log(0, "TCP connection closed on write\n");
             return -1;
         }
         sent += wc;
@@ -258,7 +258,7 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
     sv = select(sock + 1, NULL, &rfds, NULL, &timeout);
     if (sv < 0)
     {
-        fprintf(stderr, "TCP connection broke\n");
+        vpnx_log(0, "TCP connection broke\n");
         return -1;
     }
     if (sv == 0)
@@ -285,7 +285,7 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
     }
     if (rc == 0)
     {
-        fprintf(stderr, "TCP connection closed on read\n");
+        vpnx_log(0, "TCP connection closed on read\n");
         return -1;
     }
 	s_io.type = VPNX_USBT_DATA;

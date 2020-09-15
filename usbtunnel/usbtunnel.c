@@ -98,7 +98,7 @@ static void SetLED(int led, int onoff)
 	{
 		int wc = write(lfd[led], val, 1);
 		if (wc < 0)
-			printf("err=%d\n", errno);
+			vpnx_log(5, "err=%d\n", errno);
 		//close(lfd[led]);
 		//lfd[led] = -1;
 	}
@@ -125,7 +125,7 @@ int usb_open_device(long vid, long pid)
         s_probed = 1;
 
 	    // system("rmmod -f g_multi");
-	    sprintf(sysCmd, 
+	    snprintf(sysCmd, 
 	            "modprobe g_printer"
 	            " idVendor=%ld idProduct=%ld qlen=16",
 	            vid, pid
@@ -134,10 +134,10 @@ int usb_open_device(long vid, long pid)
     }
     // open the appropriate device for the endpoint
     //
-    snprintf(driverName, sizeof(driverName), "/dev/g_printer0");
+    snprinf(driverName, sizeof(driverName), "/dev/g_printer0");
     if ((s_usbd = open(driverName, O_RDWR, 0666)) < 0)
     {
-        fprintf(stderr, "Can't open driver %s\n", driverName);
+        vpnx_log(0, "Can't open driver %s\n", driverName);
         return -1;
     }
     else
@@ -149,8 +149,7 @@ int usb_open_device(long vid, long pid)
         iparm = 1;
         ioctl(s_usbd, FIONBIO, (unsigned long*)&iparm);
     }
-
-    printf("USB Device %s opened\n", "/dev/g_printer0");
+    vpnx_log(1, "USB Device %s opened\n", driveName);
    	return 0;
 }
 
@@ -181,21 +180,21 @@ int usb_write(void *pdev, vpnx_io_t *io)
         sv = select(usbd + 1, NULL, &wfds, NULL, &timeout);
         if (sv < 0)
         {
-            fprintf(stderr, "USB connection broke\n");
+            vpnx_log(0, "USB connection broke\n");
             return -1;
         }
         if (sv == 0)
         {
-            fprintf(stderr, "USB connection blocked\n");
+            vpnx_log(0, "USB connection blocked\n");
             return -1;
         }
         wc = (int)write(usbd, (char*)psend + sent, (size_t)(tosend - sent));
         if (wc < 0)
         {
 #ifdef Windows
-            fprintf(stderr, "USB write err=%d\n", WSAGetLastError());
+            vpnx_log(0, "USB write err=%d\n", WSAGetLastError());
 #else
-            fprintf(stderr, "USB write err=%d\n", errno);
+            vpnx_log(0, "USB write err=%d\n", errno);
 #endif
             return wc;
         }
@@ -224,7 +223,7 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms)
 	    sv = select(fd + 1, NULL, &rfds, NULL, &timeout);
 	    if (sv < 0)
 	    {
-	        fprintf(stderr, "USB connection broke\n");
+	        vpnx_log(0, "USB connection broke\n");
 	        return -1;
 	    }
 	    if (sv == 0)
@@ -232,7 +231,7 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms)
 	        // no data available
 			if (gotten)
 			{
-				fprintf(stderr, "USB Timeout reading %d bytes\n", count);
+				vpnx_log(0, "USB Timeout reading %d bytes\n", count);
 				return -1;
 			}
 	        return 0;
@@ -255,7 +254,7 @@ static int usb_read_bytes(int fd, uint8_t *data, int count, int waitms)
 			return rc;
 		}
 		gotten += rc;
-		printf("USB got %d more,  %d remaining to get\n", rc, count - gotten);
+		vpnx_log(5, "USB got %d more,  %d remaining to get\n", rc, count - gotten);
 	}
     return count;
 }
@@ -279,7 +278,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
 	{
 		return 0;
 	}
-	printf("usb hdr type %d  count %d\n", s_io.type, s_io.count);
+	vpnx_log(5, "usb hdr type %d  count %d\n", s_io.type, s_io.count);
 
 	if (s_io.count > 0)
 	{
@@ -297,26 +296,26 @@ int usb_read(void *pdev, vpnx_io_t **io)
 
 void SignalHandler(int sigraised)
 {
-	fprintf(stderr, "\nInterrupted.\n");
+	vpnx_log(0, "\nInterrupted.\n");
 	
     exit(0);
 }
 
 static int useage(const char *progname)
 {
-    fprintf(stderr, "Usage: %s -c [-v VID][-p PID][-l loglevel][-r remote-port] [remote-host]\n", progname);
-	fprintf(stderr, "   or: %s -s [-v VID][-p PID][-l loglevel] -r local-port\n\n", progname);
-    fprintf(stderr, "  -c provides an entry into a VPN from the LAN\n");
-    fprintf(stderr, "     The remote-host/port will be connected to by the extender proxy\n");
-    fprintf(stderr, "     running on the USB connected PC on the VPN when the USB SBC is\n");
-    fprintf(stderr, "     connected to from the LAN at its host/port\n\n");
-    fprintf(stderr, "  -s provides an entry into the LAN from a VPN\n");
-    fprintf(stderr, "     The extender proxy on the USB connected VPN PC will listen on\n");
-    fprintf(stderr, "     local-port for TCP connections which will translate to a connection\n");
-    fprintf(stderr, "     from the USB SBC to a host/port on the LAN\n\n");
-    fprintf(stderr, "  -v use this vendor id (VID) for the USB device\n");
-    fprintf(stderr, "  -p use this product id (PID) for the USB device\n");
-    //fprintf(stderr, "  -t use TLS for TCP connection to local port\n");
+    vpnx_log(0, "Usage: %s -c [-v VID][-p PID][-l loglevel][-r remote-port] [remote-host]\n", progname);
+	vpnx_log(0, "   or: %s -s [-v VID][-p PID][-l loglevel] -r local-port\n\n", progname);
+    vpnx_log(0, "  -c provides an entry into a VPN from the LAN\n");
+    vpnx_log(0, "     The remote-host/port will be connected to by the extender proxy\n");
+    vpnx_log(0, "     running on the USB connected PC on the VPN when the USB SBC is\n");
+    vpnx_log(0, "     connected to from the LAN at its host/port\n\n");
+    vpnx_log(0, "  -s provides an entry into the LAN from a VPN\n");
+    vpnx_log(0, "     The extender proxy on the USB connected VPN PC will listen on\n");
+    vpnx_log(0, "     local-port for TCP connections which will translate to a connection\n");
+    vpnx_log(0, "     from the USB SBC to a host/port on the LAN\n\n");
+    vpnx_log(0, "  -v use this vendor id (VID) for the USB device\n");
+    vpnx_log(0, "  -p use this product id (PID) for the USB device\n");
+    //vpnx_log(0, "  -t use TLS for TCP connection to local port\n");
     return -1;
 }
 
@@ -353,7 +352,9 @@ int main(int argc, const char *argv[])
     mode = VPNX_CLIENT;
     result = 0;
     
-    while (argc > 0 && ! result)
+	vpnx_set_log_level(loglevel);
+
+	while (argc > 0 && ! result)
     {
         arg = *argv++;
         argc--;
@@ -467,7 +468,9 @@ int main(int argc, const char *argv[])
         }
     }
     
-    // sanity check args
+	vpnx_set_log_level(loglevel);
+
+	// sanity check args
     //
     if (mode == VPNX_CLIENT)
     {
@@ -483,10 +486,10 @@ int main(int argc, const char *argv[])
     oldHandler = signal(SIGINT, SignalHandler);
     if (oldHandler == SIG_ERR)
 	{
-        fprintf(stderr, "Could not establish new signal handler\n");
+        vpnx_log(0, "Could not establish new signal handler\n");
 	}
         
-    printf("Setting USB device vendor ID=%ld and product ID=%ld\n", usbVendor, usbProduct);
+    vpnx_log(1, "Setting USB device vendor ID=%ld and product ID=%ld\n", usbVendor, usbProduct);
 
     // setup
     //
@@ -500,7 +503,7 @@ int main(int argc, const char *argv[])
         result = usb_open_device(usbVendor, usbProduct);
 		if (result)
 		{
-			fprintf(stderr, "No USB device, FATAL Error\n");
+			vpnx_log(0, "No USB device, FATAL Error\n");
 		}
 		else
 		{
@@ -515,7 +518,7 @@ int main(int argc, const char *argv[])
     {
         close(s_usbd);
     }
-    fprintf(stderr, "%s Ends\n", progname);
+    vpnx_log(1, "%s Ends\n", progname);
     return 0;
 }
 

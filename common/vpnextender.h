@@ -83,9 +83,15 @@ typedef int SOCKET;
     #define FREE   free
 #endif
 
+/// usb read/write functions are supplied by the application as they
+/// are much different on the host based proxy program vs the
+/// the tunnel on Linux using a kernel driver
+///
 extern int usb_write(void *dev, vpnx_io_t *io);
 extern int usb_read(void *dev, vpnx_io_t **io);
 
+void vpnx_log(uint32_t level, const char *fmt, ...);
+void vpnx_set_log_level(uint32_t newlevel);
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level);
 int vpnx_run_loop_slice(void);
 int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port);
