@@ -96,6 +96,95 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
 	return -1;
 }
 
+int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
+{
+    struct sockaddr_in serv_addr;
+    SOCKET sock;
+    #ifdef Windows
+    unsigned long nonblock;
+    #else
+    uint32_t nonblock;
+    #endif
+    int result;
+    bool isname;
+    int i;
+
+    sock = socket(AF_INET, SOCK_STREAM, 0);
+    if (sock < 0)
+    {
+        fprintf(stderr, "Can't create server socket\n");
+        return -1;
+    }
+	#if 1
+    nonblock = 1;
+    if (ioctlsocket(sock, FIONBIO, &nonblock) < 0)
+    {
+        fprintf(stderr, "Can't make nonblocking");
+        closesocket(sock);
+        return -1;
+    }
+	#endif
+	
+    // if host is an IP address, use directly
+	//
+    for (i = 0, isname = false; i < strlen(host); i++)
+    {
+        if ((host[i] < '0' || host[i] > '9') && host[i] != '.')
+        {
+            isname = true;
+            break;
+        }
+    }
+    if (isname)
+    {
+        struct hostent *hostname = gethostbyname(host);
+
+        if (! hostname)
+        {
+            fprintf(stderr, "Can't find address %s\n", host);
+            closesocket(sock);
+            return -1;
+        }
+        memcpy(&serv_addr.sin_addr, hostname->h_addr, hostname->h_length);
+    }
+    else
+    {
+        if (! inet_aton(host, &serv_addr.sin_addr))
+        {
+            fprintf(stderr, "Invalid address %s\n", host);
+            closesocket(sock);
+            return -1;
+        }
+    }
+    // connect to remote server
+    //
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(port);
+    result = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+    if (result < 0)
+    {
+        // this is non blocking, so expect error.
+        //
+        #ifdef windows
+        if (WSAGetLastError() == WSAEWOULDBLOCK)
+        #else
+        if (errno == EWOULDBLOCK || errno == EINPROGRESS)
+        #endif
+        {
+            result = 0;
+        }
+        else
+        {
+            fprintf(stderr, "Can't connect to remote host\n");
+            closesocket(sock);
+            return -1;
+        }
+    }
+	*socket_ptr = sock;
+	return 0;
+}
+
+
 int tcp_write(SOCKET sock, vpnx_io_t *io)
 {
     int sent;
@@ -151,7 +240,8 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
     
 	*io = NULL;
 	
-    // short wait for read, to keep checking usb
+    // short wait for tcp read, to keep checking usb
+	//
     int waitms = 10;
     
     FD_ZERO (&rfds);
@@ -172,21 +262,20 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
         return 0;
     }
     rc = (int)recv(sock, (char*)s_io.bytes, (size_t)VPNX_MAX_PACKET_BYTES, 0);
-    if (rc < 0)
+    if (rc <= 0)
     {
 #ifdef Windows
-        if (WSAGetLastError() == WSAEWOULDBLOCK)
-        {
-            return 0;
-        }
-        fprintf(stderr, "TCP read err=%d\n", WSAGetLastError());
+		if (WSAGetLastError() == WSAEWOULDBLOCK)
+		{
+			return 0;
+		}
 #else
-        if (errno == EWOULDBLOCK)
-        {
-            return 0;
-        }
-        fprintf(stderr, "TCP raad err=%d\n", errno);
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+		{
+			return 0;
+		}
 #endif
+		// 0 count after select > 0 means socket closed
         return rc;
     }
 	s_io.type = VPNX_USBT_DATA;

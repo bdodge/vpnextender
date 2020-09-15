@@ -1,6 +1,9 @@
 # bed backups
 *.bak
 
+# program
+usbtunnel
+
 # Prerequisites
 *.d
 
