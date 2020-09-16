@@ -698,12 +698,15 @@ int usb_write(void *pdev, vpnx_io_t *io)
 		usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, 0, 0);
 #endif
 #ifdef OSX
-        if ((*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend, tosend - sent) != kIOReturnSuccess)
+        wc = tosend - sent;
+        if ((*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend, wc) != kIOReturnSuccess)
         {
 			vpnx_log(0, "usb write failed\n");
             wc = -1;
 			return -1;
         }
+        // flush
+        (*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend, 0);
 #endif
         sent += wc;
     }
