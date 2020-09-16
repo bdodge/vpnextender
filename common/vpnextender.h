@@ -32,7 +32,7 @@
 /// payloads of 1 byte use the entire packet size, keep that in mind
 ///
 #define VPNX_HEADER_SIZE    (2 * sizeof(uint16_t) + 2 * sizeof(uint32_t))
-#define VPNX_PACKET_SIZE    (1024)
+#define VPNX_PACKET_SIZE    (16384)
 #define VPNX_MAX_PACKET_BYTES (VPNX_PACKET_SIZE - VPNX_HEADER_SIZE)
 
 /// types of packets
