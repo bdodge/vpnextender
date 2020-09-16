@@ -2,6 +2,10 @@
 #include "vpnextender.h"
 #include "vpnxtcp.h"
 
+#ifdef Windows
+#include "winusb.h"
+#include "winusbio.h"
+#endif
 #ifdef OSX
 #include <IOKit/IOKitLib.h>
 #include <IOKit/IOMessage.h>
@@ -30,6 +34,7 @@ typedef struct usb_desc
     HANDLE                  hio_wr;
     HANDLE                  hio_rd;
     HANDLE                  hio_ev;
+    OVERLAPPED              rx_overlap[2];
 #elif defined(Linux)
     struct usb_dev_handle  *hio;
     int                     busn;
@@ -76,25 +81,38 @@ static void destroy_usb_desc(usb_desc_t *desc)
 int find_usb_device(long vid, long pid)
 {
     // Windows usb (setupapi)
+    const GUID                     *portGUID;
     BOOL                            rv;
     HDEVINFO                        hDev;
     SP_DEVICE_INTERFACE_DATA        devIntData;
     SP_DEVICE_INTERFACE_DETAIL_DATA *devIntDetail;
 
     DWORD   cbNeeded;
-    BYTE    ditBuf[16384];
-	char    portName[1024];
-    int     index, devdex;
+    BYTE    *ditBuf;
+    DWORD   ditBufSize;
+	char    portName[MAX_PATH];
+    char    portEpName[MAX_PATH];
+    int     index;
     int     err;
 
     char  vidstr[32], pidstr[32];
-    int   vid, pid;
+    int   dvid, dpid;
     
+    portGUID = &s_guid_printer;
+    portName[0] = '\0';
+
+    ditBufSize = 65536;
+    ditBuf = (LPBYTE)malloc(ditBufSize);
+    if (!ditBuf)
+    {
+        vpnx_log(0, "Can't alloc device info buffer\n");
+        return -1;
+    }
     // setup api, get class devices: list all devices belonging to the interface
     // or setup class that are present
     //
     hDev = SetupDiGetClassDevs(
-                                    s_guid_printer, 
+                                    portGUID, 
                                     NULL,
                                     NULL, 
                                     DIGCF_PRESENT | DIGCF_INTERFACEDEVICE
@@ -103,25 +121,25 @@ int find_usb_device(long vid, long pid)
     {
         err = GetLastError();
 		vpnx_log(0, "usb find: No Device:%d\n", err);
+        free(ditBuf);
         return err;
     }
 
 	index = 0;
-    devdex = 0;
 
     do
     {
         // enumerate the device interfaces in the set created above
         //
         devIntData.cbSize = sizeof(devIntData);
-        rv = SetupDiEnumDeviceInterfaces(hDev, NULL, portGUID, devdex, &devIntData);
-        
+        rv = SetupDiEnumDeviceInterfaces(hDev, NULL, portGUID, index++, &devIntData);
+       
         if(rv)
         {
             devIntDetail = (PSP_DEVICE_INTERFACE_DETAIL_DATA)ditBuf;
             devIntDetail->cbSize = sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA);
             
-            rv  = SetupDiGetDeviceInterfaceDetail(hDev, &devIntData, devIntDetail, sizeof(ditBuf), &cbNeeded, NULL);
+            rv  = SetupDiGetDeviceInterfaceDetail(hDev, &devIntData, devIntDetail, ditBufSize, &cbNeeded, NULL);
             
             if(rv)
             {
@@ -132,6 +150,8 @@ int find_usb_device(long vid, long pid)
                 //
                 vidstr[0] = '\0';
                 pidstr[0] = '\0';
+                dvid = 0;
+                dpid = 0;
 
                 if((ps = strstr(devIntDetail->DevicePath, "vid_")) != NULL)
                 {
@@ -145,10 +165,12 @@ int find_usb_device(long vid, long pid)
                 }
 				if (dvid == vid && dpid == pid)
 				{
-					vpnx_log(2, "Found device with matching vid/pid\n");
-                	strncpy(portName, devIntDetail->DevicePath. sizeof(portName) - 1);
-					portName[sizeof(portName) - 1] = '\0';
-					break;
+                    gusb_device = create_usb_desc();
+
+                    vpnx_log(2, "Found device with matching vid/pid\n");
+                    strncpy(portName, devIntDetail->DevicePath, sizeof(portName) - 1);
+                    portName[sizeof(portName) - 1] = '\0';
+                    break;
 				}
                 index++;
             }
@@ -156,7 +178,6 @@ int find_usb_device(long vid, long pid)
             {
                 vpnx_log(1, "Can't get detail\n");
             }
-            devdex++;
         }
         else
         {
@@ -164,23 +185,29 @@ int find_usb_device(long vid, long pid)
             err = GetLastError();
         }
     }
-    while(rv && (index != (nDevice + 1)));
+    while(rv /*&& (index != (nDevice + 1))*/);
     
+    free(ditBuf);
     SetupDiDestroyDeviceInfoList(hDev);
     
     if (portName[0] == '\0')
     {
 		return -1;
 	}
-    pusb->hio_rd = INVALID_HANDLE_VALUE;
-    pusb->hio_wr = INVALID_HANDLE_VALUE;
+    gusb_device->hio_rd = INVALID_HANDLE_VALUE;
+    gusb_device->hio_wr = INVALID_HANDLE_VALUE;
 
-    pusb->rep   = 2;
-    pusb->wep   = 1;
+    gusb_device->wep = 1;
+    gusb_device->rep = 2;
+
+    gusb_device->readPacketSize = 512;
+    gusb_device->writePacketSize = 512;
 
     // open bulk channel port
     //
-    pusb->hio_rd = CreateFile(
+    _snprintf(portEpName, MAX_PATH, "%s\\%d", portName, gusb_device->rep);
+
+    gusb_device->hio_rd = CreateFile(
                             portName, 
                             GENERIC_READ | GENERIC_WRITE, 
                             FILE_SHARE_READ | FILE_SHARE_WRITE, 
@@ -189,18 +216,18 @@ int find_usb_device(long vid, long pid)
                             FILE_FLAG_OVERLAPPED,
                             NULL
                         );
-    if(pusb->hio_rd == INVALID_HANDLE_VALUE)
+    if(gusb_device->hio_rd == INVALID_HANDLE_VALUE)
     {
 		vpnx_log(0, "Can't opne read endpoint\n");
         return -1;
     }
-    if (USB_SCAN_BULK_WR_EP != USB_SCAN_BULK_RD_EP)
+    if (gusb_device->rep != gusb_device->wep)
     {
         // open control channel port
         //
-        _snprintf(portName, MAX_PATH, "%s\\%d", portBase, USB_SCAN_BULK_WR_EP);
-    
-        pusb->hio_wr = CreateFile(
+        _snprintf(portEpName, MAX_PATH, "%s\\%d", portName, gusb_device->wep);
+
+        gusb_device->hio_wr = CreateFile(
                                 portName, 
                                 GENERIC_READ | GENERIC_WRITE, 
                                 FILE_SHARE_READ | FILE_SHARE_WRITE, 
@@ -209,17 +236,17 @@ int find_usb_device(long vid, long pid)
                                 FILE_FLAG_OVERLAPPED,
                                 NULL
                             );
-        if(pusb->hio_wr == INVALID_HANDLE_VALUE)
+        if(gusb_device->hio_wr == INVALID_HANDLE_VALUE)
         {
 			vpnx_log(0, "Can't open write endpoint\n");
-            CloseHandle(pusb->hio_rd);
-            pusb->hio_rd = INVALID_HANDLE_VALUE;
+            CloseHandle(gusb_device->hio_rd);
+            gusb_device->hio_rd = INVALID_HANDLE_VALUE;
             return -1;
         }
     }
     else
     {
-        pusb->hio_wr = pusb->hio_rd;
+        gusb_device->hio_wr = gusb_device->hio_rd;
     }
     vpnx_log(1, "Opened USB device vid=%X pid=%X\n", vid, pid);
 	return 0;
@@ -832,8 +859,6 @@ int usb_write(void *pdev, vpnx_io_t *io)
     psend = (uint8_t *)io;
     sent = 0;
     
-    // break write into chunks of transport packet size
-    //
     while (sent < tosend)
     {
 #ifdef Windows
@@ -841,14 +866,14 @@ int usb_write(void *pdev, vpnx_io_t *io)
     int         err;
     int         timer;
     OVERLAPPED  overlap;
-    DWORD       wc;
+    DWORD       written;
 
     memset(&overlap, 0, sizeof(OVERLAPPED));
-    rv = WriteFile(pusb->hio_wr, (LPCVOID)pBuffer, nBuffer, &wc, &overlap);
-    for(timer = 0; ! rv && (timer < waitms); timer++)
+    rv = WriteFile(dev->hio_wr, (LPCVOID)(psend + sent), tosend - sent, &written, &overlap);
+    for(timer = 0; ! rv && (timer < 5000); timer++)
     {
-        rv = GetOverlappedResult(pusb->hio_wr, &overlap, &wc, FALSE);
-        if(! rv)
+        rv = GetOverlappedResult(dev->hio_wr, &overlap, &written, FALSE);
+        if(!rv)
         {
             err = GetLastError();
             if(err != ERROR_IO_INCOMPLETE && err != ERROR_IO_PENDING)
@@ -858,10 +883,12 @@ int usb_write(void *pdev, vpnx_io_t *io)
             Sleep(1);
         }
     }
-    if (wc < nBuffer)
+    if (written < (DWORD)(tosend - sent))
     {
-        CancelIo(pusb->hio_wr);
+        vpnx_log(0, "usb write failed\n");
+        CancelIo(dev->hio_wr);
     }
+    wc = (int)written;
 #elif defined(Linux)
 		//vpnx_log(2, "usb gonna write %d\n", tosend - sent);
 		wc = usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, tosend - sent, 5000);
@@ -936,39 +963,31 @@ int usb_read(void *pdev, vpnx_io_t **io)
 		
         dev->rx_started[dev->rx_pong] = true;
 #ifdef Windows
-    memset(&s_usbr_overlap, 0, sizeof(OVERLAPPED));
-    s_usbr_size = nBuffer;
+        BOOL rv;
+        DWORD gotten;
 
-    rv = ReadFile(pusb->hio_rd, (LPVOID)pBuffer, nBuffer, &nGotten, &s_usbr_overlap);
-    if(! rv)
-    {
-        int err = GetLastError();
+        memset(&dev->rx_overlap[dev->rx_pong], 0, sizeof(OVERLAPPED));
 
-        if(err != ERROR_IO_INCOMPLETE && err != ERROR_IO_PENDING)
+        rv = ReadFile(
+                    dev->hio_rd,
+                    (LPVOID)(((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have),
+                    remaining,
+                    &gotten,
+                    &dev->rx_overlap[dev->rx_pong]
+                    );
+        if(! rv)
         {
-            CancelIo(pusb->hio_rd);
-            printf("Can't start read\n");
-            return -1;
+            int err = GetLastError();
+
+            if(err != ERROR_IO_INCOMPLETE && err != ERROR_IO_PENDING)
+            {
+                CancelIo(gusb_device->hio_rd);
+                printf("Can't start read\n");
+                return -1;
+            }
         }
-    }
-	    rv = GetOverlappedResult(pusb->hio_rd, &s_usbr_overlap, &nGotten, FALSE);
-	    if(! rv)
-	    {
-	        int err = GetLastError();
-	        
-	        if(err != ERROR_IO_INCOMPLETE && err != ERROR_IO_PENDING)
-	        {
-	            printf("USB read error %d\n", err);
-	            CancelIo(pusb->hio_rd);
-	            return -1;
-	        }
-	        return 0;
-	    }
-	    if (nGotten < s_usbr_size)
-	    {
-	        // not complete yet
-	        return 0;
-	    }
+        vpnx_log(2, "usb read for [%d], got %u initialily\n", dev->rx_pong, gotten);
+        dev->rx_usb_count[dev->rx_pong] = gotten;
 #endif
 #ifdef Linux
 		result = usb_bulk_read(
@@ -1039,6 +1058,50 @@ int usb_read(void *pdev, vpnx_io_t **io)
         }
 #endif
     }
+#ifdef Windows
+    else
+    {
+        BOOL rv;
+        DWORD gotten;
+
+        rv = GetOverlappedResult(dev->hio_rd, &dev->rx_overlap[dev->rx_pong], &gotten, FALSE);
+        if (!rv)
+        {
+            int err = GetLastError();
+
+            if (err != ERROR_IO_INCOMPLETE && err != ERROR_IO_PENDING)
+            {
+                vpnx_log(0, "usb read error %d\n", err);
+                CancelIo(gusb_device->hio_rd);
+                return -1;
+            }
+            else
+            {
+                vpnx_log(1, "incomplete/pending io\n");
+            }
+            // read not complete, keep going
+            return 0;
+        }
+        if ((gotten + dev->rx_usb_count[dev->rx_pong]) < VPNX_PACKET_SIZE)
+        {
+            // if nothing, restart the read
+            //
+            if (!gotten)
+            {
+                CancelIo(dev->hio_rd);
+                dev->rx_started[dev->rx_pong] = false;
+                return 0;
+            }
+            vpnx_log(3, "usb read [%d] in progress, got %u so far\n", dev->rx_pong, gotten);
+            // not complete yet
+            return 0;
+        }
+        vpnx_log(3, "usb_read_complete [%d] with %d more bytes, payload is %d\n",
+            dev->rx_pong, gotten, dev->rx_usb_packet[dev->rx_pong].count);
+        dev->rx_completed[dev->rx_pong] = true;
+        dev->rx_started[dev->rx_pong] = false;
+    }
+#endif
     return 0;
 }
 
@@ -1115,8 +1178,9 @@ int main(int argc, const char *argv[])
     
     long	    usbVendor = kVendorID;
     long	    usbProduct = kProductID;
+#ifndef Windows
     sig_t	    oldHandler;
- 
+#endif
     progname = *argv++;
     argc--;
     
@@ -1174,7 +1238,7 @@ int main(int argc, const char *argv[])
                 case 'r':
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
-                        port = strtoul(arg + argdex, NULL, 0);
+                        port = (uint16_t)strtoul(arg + argdex, NULL, 0);
                         while (arg[argdex] != '\0')
                         {
                             argdex++;
@@ -1182,7 +1246,7 @@ int main(int argc, const char *argv[])
                     }
                     else if (argc > 0)
                     {
-                        port = strtoul(*argv, NULL, 0);
+                        port = (uint16_t)strtoul(*argv, NULL, 0);
                         argc--;
                         argv++;
                     }
@@ -1194,7 +1258,7 @@ int main(int argc, const char *argv[])
                 case 'v':
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
-                        usbVendor = strtoul(arg + argdex, NULL, 0);
+                        usbVendor = (uint16_t)strtoul(arg + argdex, NULL, 0);
                         while (arg[argdex] != '\0')
                         {
                             argdex++;
@@ -1202,7 +1266,7 @@ int main(int argc, const char *argv[])
                     }
                     else if (argc > 0)
                     {
-                        usbVendor = strtoul(*argv, NULL, 0);
+                        usbVendor = (uint16_t)strtoul(*argv, NULL, 0);
                         argc--;
                         argv++;
                     }
@@ -1255,6 +1319,8 @@ int main(int argc, const char *argv[])
     {
         ;
     }
+
+#ifndef Windows
     // Set up a signal handler so we can clean up when we're interrupted from the command line
     // Otherwise we stay in our run loop forever.
 	//
@@ -1263,7 +1329,7 @@ int main(int argc, const char *argv[])
 	{
         vpnx_log(0, "Could not establish new signal handler.");
 	}
-        
+#endif
     vpnx_log(2, "Looking for devices matching vendor ID=%ld and product ID=%ld.\n", usbVendor, usbProduct);
 
     // setup

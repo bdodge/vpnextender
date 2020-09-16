@@ -107,6 +107,7 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
     #endif
     int result;
     bool isname;
+    int hostlen;
     int i;
 
     sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -127,7 +128,7 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
 	
     // if host is an IP address, use directly
 	//
-    for (i = 0, isname = false; i < strlen(host); i++)
+    for (i = 0, isname = false, hostlen = (int)strlen(host); i < hostlen; i++)
     {
         if ((host[i] < '0' || host[i] > '9') && host[i] != '.')
         {
@@ -149,7 +150,7 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
     }
     else
     {
-        if (! inet_aton(host, &serv_addr.sin_addr))
+        if (! inet_pton(AF_INET, host, &serv_addr.sin_addr))
         {
             vpnx_log(0, "Invalid address %s\n", host);
             closesocket(sock);
@@ -231,7 +232,7 @@ int tcp_write(SOCKET sock, vpnx_io_t *io)
         }
         sent += wc;
     }
-    while (sent < io->count);
+    while (sent < (int)io->count);
     
     return 0;
 }

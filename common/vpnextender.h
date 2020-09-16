@@ -1,17 +1,19 @@
 #ifndef VPNEXTENDER_H_
 #define VPNEXTENDER_H_ 1
 
+#if defined(Windows)
+#include <winsock2.h>
+#include <Ws2tcpip.h>
+#include <Windows.h>
+#include <Setupapi.h>
+#include <shlwapi.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#if defined(Windows)
-    #include <Windows.h>
-    #include <Setupapi.h>
-    #include <shlwapi.h>
-#endif
 
 #define VPNX_CLIENT (0) ///< connect to remote host/port from VPN from LAN via USB
 #define VPNX_SERVER (1) ///< accept local connections and forward via USB to LAN
@@ -51,7 +53,7 @@
 
 /// The USB data transfer packet type
 ///
-typedef struct __attribute__((packed)) tag_vpnx_io
+typedef struct /*__attribute__((packed))*/ tag_vpnx_io
 {
     uint32_t    type;
     uint32_t    count;
@@ -69,6 +71,8 @@ typedef int SOCKET;
 #define SOCKET_ERROR (-1)
 #define closesocket close
 #define ioctlsocket ioctl
+#else
+typedef int socklen_t;
 #endif
 
 #define USB_CLASS_PRINTER       7
@@ -98,7 +102,7 @@ typedef int SOCKET;
 extern int usb_write(void *dev, vpnx_io_t *io);
 extern int usb_read(void *dev, vpnx_io_t **io);
 
-void vpnx_log(uint32_t level, const char *fmt, ...);
+void vpnx_log(int level, const char *fmt, ...);
 void vpnx_set_log_level(uint32_t newlevel);
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level);
 int vpnx_run_loop_slice(void);

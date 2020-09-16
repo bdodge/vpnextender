@@ -30,7 +30,7 @@ static int s_mode;
 ///
 static int s_log_level;
 
-void vpnx_log(uint32_t level, const char *fmt, ...)
+void vpnx_log(int level, const char *fmt, ...)
 {
     va_list args;
 
@@ -114,7 +114,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
         
     level++;
 
-    for (i = j = 0; i < io->count; i++)
+    for (i = j = 0; i < (int)io->count; i++)
     {
         data = ((uint8_t*)io)[i]; //io->bytes[i];
 
@@ -150,7 +150,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
 
 int vpnx_run_loop_slice()
 {
-    vpnx_io_t   io_packet;
+    static vpnx_io_t   io_packet;
     
     vpnx_io_t   *io_from_usb;
     vpnx_io_t   *io_from_tcp;
@@ -223,6 +223,8 @@ int vpnx_run_loop_slice()
             result = tcp_connect(s_remote_host, s_remote_port, &s_tcp_socket);
             if (result)
             {
+                io_to_usb = io_from_usb;
+
                 vpnx_log(0, "Can't connect to remote host\n");
                 s_tcp_socket = INVALID_SOCKET;
                 
