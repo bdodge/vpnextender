@@ -322,6 +322,17 @@ int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint
 {
     int result;
     
+#ifdef Windows
+    {
+        // init win32 wsa
+        WORD    wVersionRequested;
+        WSADATA wsaData;
+        
+        wVersionRequested = MAKEWORD( 1, 1 );
+    
+        WSAStartup(wVersionRequested, &wsaData);
+    }
+#endif
     s_mode = mode;
     s_usb_device = usb_device;
     s_server_socket = INVALID_SOCKET;

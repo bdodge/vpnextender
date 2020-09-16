@@ -7,6 +7,11 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#if defined(Windows)
+    #include <Windows.h>
+    #include <Setupapi.h>
+    #include <shlwapi.h>
+#endif
 
 #define VPNX_CLIENT (0) ///< connect to remote host/port from VPN from LAN via USB
 #define VPNX_SERVER (1) ///< accept local connections and forward via USB to LAN
@@ -58,9 +63,8 @@ vpnx_io_t;
 
 /// make some things OS agnostic
 ///
-typedef int SOCKET;
-
 #ifndef Windows
+typedef int SOCKET;
 #define INVALID_SOCKET (-1)
 #define SOCKET_ERROR (-1)
 #define closesocket close
