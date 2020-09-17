@@ -183,6 +183,23 @@ int vpnx_run_loop_slice()
         
         vpnx_dump_packet("USB Tx[connect]", &io_packet, 3);
 
+        // flush any old data in driver
+        //
+        do
+        {
+            result = usb_read(s_usb_device, &io_from_usb);
+            if (result)
+            {
+                vpnx_log(0, "USB packet read error\n");
+                return result;
+            }
+            if (io_from_usb)
+            {
+                vpnx_dump_packet("Flushing usb data on connect", io_from_usb, 1);
+            }
+        }
+        while (io_from_usb);
+
         result = usb_write(s_usb_device, &io_packet);
         if (result)
         {
