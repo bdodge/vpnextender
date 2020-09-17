@@ -5,8 +5,6 @@
 usbtunnel
 
 # xcode state
-macvpnproxy/macvpnproxy.xcodeproj/xcshareddata/
-macvpnproxy/macvpnproxy.xcodeproj/project.xcworkspace/xcuserdata/bdodge.xcuserdatad/UserInterfaceState.xcuserstate
 
 winvpnproxy/vpnextender/.vs
 winvpnproxy/vpnextender/Debug
