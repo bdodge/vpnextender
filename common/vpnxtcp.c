@@ -248,7 +248,7 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
 	
     // short wait for tcp read, to keep checking usb
 	//
-    int waitms = 10;
+    int waitms = 100;
     
     FD_ZERO (&rfds);
     FD_SET  (sock, &rfds);

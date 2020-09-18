@@ -280,9 +280,9 @@ int usb_read(void *pdev, vpnx_io_t **io)
 
 	//vpnx_log(3, "usb read try for %d\n", VPNX_PACKET_SIZE);
 	
-    // short wait for read, to keep checking tcp
+	// short wait for read, to keep checking tcp (note: timeouts of 10ms or less dont seem to work)
 	//
-    rc = usb_read_bytes(usbd, (uint8_t*)&s_io, VPNX_PACKET_SIZE, 10, false);
+    rc = usb_read_bytes(usbd, (uint8_t*)&s_io, VPNX_PACKET_SIZE, 100, false);
 	//vpnx_log(3, "Got %d\n", rc);
 	if (rc <= 0)
 	{

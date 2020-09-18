@@ -999,7 +999,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
                                 dev->rep,
                                 ((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have,
                                 remaining,
-                                have ? 1500 : 100 /* 10ms timeout for first buffer*/
+                                have ? 1500 : 100 /* 100ms timeout for first buffer*/
                                 );
         if (result == -ETIMEDOUT)
         {
