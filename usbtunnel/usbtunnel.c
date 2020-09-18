@@ -306,19 +306,23 @@ void SignalHandler(int sigraised)
 
 static int useage(const char *progname)
 {
-    vpnx_log(0, "Usage: %s -c [-v VID][-p PID][-l loglevel][-r remote-port] [remote-host]\n", progname);
-	vpnx_log(0, "   or: %s -s [-v VID][-p PID][-l loglevel] -r local-port\n\n", progname);
-    vpnx_log(0, "  -c provides an entry into a VPN from the LAN\n");
-    vpnx_log(0, "     The remote-host/port will be connected to by the extender proxy\n");
-    vpnx_log(0, "     running on the USB connected PC on the VPN when the USB SBC is\n");
-    vpnx_log(0, "     connected to from the LAN at its host/port\n\n");
-    vpnx_log(0, "  -s provides an entry into the LAN from a VPN\n");
-    vpnx_log(0, "     The extender proxy on the USB connected VPN PC will listen on\n");
-    vpnx_log(0, "     local-port for TCP connections which will translate to a connection\n");
-    vpnx_log(0, "     from the USB SBC to a host/port on the LAN\n\n");
-    vpnx_log(0, "  -v use this vendor id (VID) for the USB device\n");
-    vpnx_log(0, "  -p use this product id (PID) for the USB device\n");
-    //vpnx_log(0, "  -t use TLS for TCP connection to local port\n");
+    vpnx_log(0, "Usage: %s -c [-h][-v VID][-p PID][-l loglevel][-r remote-port] [remote-host]\n", progname);
+	vpnx_log(0, "   or: %s -s -a local-port [-h][-v VID][-p PID][-l loglevel]\n\n", progname);
+    vpnx_log(0, "  -c VPN->LAN client\n");
+	vpnx_log(0, "       A USB connection is translated to a TCP connection to the LAN based remote host\n");
+    vpnx_log(0, "       specified in the USB connection, or if not present, the default remote host specified\n");
+	vpnx_log(0, "       on the command line\n");
+    vpnx_log(0, "    -r default port on remote host to access\n");
+    vpnx_log(0, "    remote-host, if supplied, is the default remote host to connect to when a USB\n");
+	vpnx_log(0, "	 connection is initiated by the prt proxy and the request doesn't contain a host name\n");
+	vpnx_log(0, "\n");
+    vpnx_log(0, "  -s LAN->VPN server\n");
+    vpnx_log(0, "       Listen on local-port for TCP connections and translate them to\n");
+    vpnx_log(0, "       USB connections to the host prt proxy on a VPN connected PC\n");
+    vpnx_log(0, "    -a (or -r) local port to listen on for incoming TCP connections\n");
+    vpnx_log(0, "    -v use this vendor id (VID) for the USB device\n");
+    vpnx_log(0, "    -p use this product id (PID) for the USB device\n");
+    vpnx_log(0, "    -h This help text\n");
     return -1;
 }
 
@@ -399,6 +403,7 @@ int main(int argc, const char *argv[])
                         return useage(progname);
                     }
                     break;
+                case 'a':
                 case 'r':
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
@@ -459,6 +464,9 @@ int main(int argc, const char *argv[])
                         return useage(progname);
                     }
                     break;
+				case 'h':
+					useage(progname);
+					return 0;
                 default:
                     return useage(progname);
                 }
@@ -510,7 +518,7 @@ int main(int argc, const char *argv[])
 		}
 		else
 		{
-			vpnx_run_loop_init(mode, (void*)s_usbd, remote_host, port);
+			vpnx_run_loop_init(mode, (void*)s_usbd, remote_host, port, port);
 		}
 	}
 	while (! result)

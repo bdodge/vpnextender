@@ -22,6 +22,10 @@ char s_remote_host[1024];
 ///
 uint16_t s_remote_port;
 
+/// local port to listen on
+///
+uint16_t s_local_port;
+
 /// mode: client or serfver
 ///
 static int s_mode;
@@ -152,6 +156,9 @@ int vpnx_run_loop_slice()
 {
     static vpnx_io_t   io_packet;
     
+    char remote_host[1024];
+    uint16_t remote_port;
+    
     vpnx_io_t   *io_from_usb;
     vpnx_io_t   *io_from_tcp;
     vpnx_io_t   *io_to_usb;
@@ -181,12 +188,25 @@ int vpnx_run_loop_slice()
         io_packet.srcport = 0xDEAD;
         io_packet.dstport = 0xBEEF;
         
+        // if we have a remote_host/port configured, add to packet
+        //
+        if (s_remote_host[0])
+        {
+            io_packet.count = snprintf((char*)io_packet.bytes, VPNX_MAX_PACKET_BYTES, "%s:%u",
+                    s_remote_host, s_remote_port);
+            if (io_packet.count < 0)
+            {
+                vpnx_log(0, "hostname too long for packet\n");
+                return -1;
+            }
+        }
         vpnx_dump_packet("USB Tx[connect]", &io_packet, 3);
 
         // flush any old data in driver
         //
         do
         {
+            io_from_usb = NULL;
             result = usb_read(s_usb_device, &io_from_usb);
             if (result)
             {
@@ -236,8 +256,32 @@ int vpnx_run_loop_slice()
         case VPNX_USBT_SYNC:
             break;
         case VPNX_USBT_CONNECT:
-            vpnx_log(1, "USB host connects, Attempt to connect to TCP %s:%u\n", s_remote_host, s_remote_port);
-            result = tcp_connect(s_remote_host, s_remote_port, &s_tcp_socket);
+            strncpy(remote_host, s_remote_host, sizeof(remote_host) - 1);
+            remote_host[sizeof(remote_host) - 1] = '\0';
+            if (io_from_usb->count > 0)
+            {
+                char *pcolon;;
+                
+                // extract remote host spec from message if available
+                strncpy(remote_host, io_from_usb->bytes, sizeof(remote_host) - 1);
+                if (io_from_usb->count < sizeof(remote_host))
+                {
+                    remote_host[io_from_usb->count] = '\0';
+                }
+                else
+                {
+                    remote_host[sizeof(remote_host) - 1] = '\0';
+                }
+                pcolon = strchr(remote_host, ':');
+                if (pcolon) 
+                {
+                    *pcolon++ = '\0';
+                    remote_port = strtoul(pcolon, NULL, 10);
+                }
+                vpnx_log(3, "USB host specified remote host: %s on port %u\n", remote_host, remote_port);
+            }
+            vpnx_log(1, "USB host connects, Attempt to connect to TCP %s:%u\n", remote_host, remote_port);
+            result = tcp_connect(remote_host, remote_port, &s_tcp_socket);
             if (result)
             {
                 io_to_usb = io_from_usb;
@@ -337,7 +381,7 @@ int vpnx_run_loop_slice()
     return result;
 }
 
-int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port)
+int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port, uint16_t local_port)
 {
     int result;
     
@@ -356,25 +400,22 @@ int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint
     s_usb_device = usb_device;
     s_server_socket = INVALID_SOCKET;
     s_tcp_socket = INVALID_SOCKET;
+
     strncpy(s_remote_host, remote_host, sizeof(s_remote_host) - 1);
     s_remote_host[sizeof(s_remote_host) - 1] = '\0';
+
     s_remote_port = remote_port;
+    s_local_port  = local_port;
+    
     if (s_mode == VPNX_SERVER)
     {
         // if server-mode, listen for connections on our local port
         //
-        result = tcp_listen_on_port(s_remote_port, &s_server_socket);
+        result = tcp_listen_on_port(s_local_port, &s_server_socket);
         if (result)
         {
             return result;
         }
-    }
-    else
-    {
-        // if client-mode, connect to remote host if specified
-        // (remote host/port can come from LAN pc via USB(connect) message later)
-        //
-        // [TODO]
     }
     return 0;
 }

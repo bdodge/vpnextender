@@ -106,6 +106,6 @@ void vpnx_log(int level, const char *fmt, ...);
 void vpnx_set_log_level(uint32_t newlevel);
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level);
 int vpnx_run_loop_slice(void);
-int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port);
+int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port, uint16_t local_port);
 
 #endif

@@ -41,11 +41,11 @@ typedef struct usb_desc
     int                     devn;
     int                     inum;
 #elif defined(OSX)
-    io_object_t				notification;
-    IOUSBDeviceInterface	**deviceInterface;
+    io_object_t             notification;
+    IOUSBDeviceInterface    **deviceInterface;
     IOUSBInterfaceInterface **usbInterface;
-    CFStringRef				deviceName;
-    UInt32					locationID;
+    CFStringRef             deviceName;
+    UInt32                  locationID;
 #endif
 }
 usb_desc_t;
@@ -90,7 +90,7 @@ int find_usb_device(long vid, long pid)
     DWORD   cbNeeded;
     BYTE    *ditBuf;
     DWORD   ditBufSize;
-	char    portName[MAX_PATH];
+    char    portName[MAX_PATH];
     char    portEpName[MAX_PATH];
     int     index;
     int     err;
@@ -120,12 +120,12 @@ int find_usb_device(long vid, long pid)
     if(hDev == INVALID_HANDLE_VALUE)
     {
         err = GetLastError();
-		vpnx_log(0, "usb find: No Device:%d\n", err);
+        vpnx_log(0, "usb find: No Device:%d\n", err);
         free(ditBuf);
         return err;
     }
 
-	index = 0;
+    index = 0;
 
     do
     {
@@ -163,15 +163,15 @@ int find_usb_device(long vid, long pid)
                     dpid = strtol(ps+4, NULL, 16);
                     _snprintf(pidstr, 32, "%d", pid);
                 }
-				if (dvid == vid && dpid == pid)
-				{
+                if (dvid == vid && dpid == pid)
+                {
                     gusb_device = create_usb_desc();
 
                     vpnx_log(2, "Found device with matching vid/pid\n");
                     strncpy(portName, devIntDetail->DevicePath, sizeof(portName) - 1);
                     portName[sizeof(portName) - 1] = '\0';
                     break;
-				}
+                }
                 index++;
             }
             else
@@ -192,8 +192,8 @@ int find_usb_device(long vid, long pid)
     
     if (portName[0] == '\0')
     {
-		return -1;
-	}
+        return -1;
+    }
     gusb_device->hio_rd = INVALID_HANDLE_VALUE;
     gusb_device->hio_wr = INVALID_HANDLE_VALUE;
 
@@ -218,7 +218,7 @@ int find_usb_device(long vid, long pid)
                         );
     if(gusb_device->hio_rd == INVALID_HANDLE_VALUE)
     {
-		vpnx_log(0, "Can't opne read endpoint\n");
+        vpnx_log(0, "Can't opne read endpoint\n");
         return -1;
     }
     if (gusb_device->rep != gusb_device->wep)
@@ -238,7 +238,7 @@ int find_usb_device(long vid, long pid)
                             );
         if(gusb_device->hio_wr == INVALID_HANDLE_VALUE)
         {
-			vpnx_log(0, "Can't open write endpoint\n");
+            vpnx_log(0, "Can't open write endpoint\n");
             CloseHandle(gusb_device->hio_rd);
             gusb_device->hio_rd = INVALID_HANDLE_VALUE;
             return -1;
@@ -249,7 +249,7 @@ int find_usb_device(long vid, long pid)
         gusb_device->hio_wr = gusb_device->hio_rd;
     }
     vpnx_log(1, "Opened USB device vid=%X pid=%X\n", vid, pid);
-	return 0;
+    return 0;
 }
 #endif
 
@@ -301,10 +301,10 @@ int find_usb_device(long vid, long pid)
                                     dev->descriptor.idVendor, dev->descriptor.idProduct, dev->descriptor.bDeviceClass, 
                                     i, dev->config[c].interface[i].altsetting[a].bInterfaceClass);
 
-							if(dev->config[c].interface[i].altsetting[a].bInterfaceClass == USB_CLASS_PRINTER)
+                            if(dev->config[c].interface[i].altsetting[a].bInterfaceClass == USB_CLASS_PRINTER)
                             {
                                 int n, rep, wep, iep;
-								uint16_t rpz, wpz;
+                                uint16_t rpz, wpz;
                                 
                                 rep = 0x81;
                                 wep = 0;
@@ -323,11 +323,11 @@ int find_usb_device(long vid, long pid)
                                         {
                                         case USB_ENDPOINT_IN:
                                             rep = dev->config[c].interface[i].altsetting[a].endpoint[n].bEndpointAddress;
-											rpz = dev->config[c].interface[i].altsetting[a].endpoint[n].wMaxPacketSize;
+                                            rpz = dev->config[c].interface[i].altsetting[a].endpoint[n].wMaxPacketSize;
                                             break;
                                         case USB_ENDPOINT_OUT:
                                             wep = dev->config[c].interface[i].altsetting[a].endpoint[n].bEndpointAddress;
-											wpz = dev->config[c].interface[i].altsetting[a].endpoint[n].wMaxPacketSize;
+                                            wpz = dev->config[c].interface[i].altsetting[a].endpoint[n].wMaxPacketSize;
                                             break;
                                         }
                                         break;
@@ -343,39 +343,39 @@ int find_usb_device(long vid, long pid)
                                         break;
                                     }
                                 }
-								
-								if (dev->descriptor.idVendor == vid && dev->descriptor.idProduct == pid)
-								{
-									vpnx_log(1, "Found USB tunnel device\n");
-									gusb_device = create_usb_desc();
-									gusb_device->rep = rep;
-									gusb_device->wep = wep;
-									gusb_device->iep = iep;
-									gusb_device->writePacketSize = wpz;
-									gusb_device->readPacketSize = rpz;
-									gusb_device->busn = busn;
-									gusb_device->devn = devn;
-									gusb_device->inum = dev->config[c].interface[i].altsetting[a].bInterfaceNumber;
-									gusb_device->hio = usb_open(dev);
-								    if(!gusb_device->hio)
-								    {
-										destroy_usb_desc(gusb_device);
-										gusb_device = NULL;
-										vpnx_log(0, "Can't open usb device\n");
-								        return -1;
-								    }								
-								    result = usb_claim_interface(gusb_device->hio, gusb_device->inum);
-								    if(result < 0)
-								    {
-								        vpnx_log(0, "Can't claim USB interface %d [%s]\n",
-											                gusb_device->inum, strerror(-result));
-										destroy_usb_desc(gusb_device);
-										gusb_device = NULL;
-										return result;
-								    }
-							        vpnx_log(2, "Opened USB device vid=%X pid=%X\n", vid, pid);
-									return 0;
-								}
+                                
+                                if (dev->descriptor.idVendor == vid && dev->descriptor.idProduct == pid)
+                                {
+                                    vpnx_log(1, "Found USB tunnel device\n");
+                                    gusb_device = create_usb_desc();
+                                    gusb_device->rep = rep;
+                                    gusb_device->wep = wep;
+                                    gusb_device->iep = iep;
+                                    gusb_device->writePacketSize = wpz;
+                                    gusb_device->readPacketSize = rpz;
+                                    gusb_device->busn = busn;
+                                    gusb_device->devn = devn;
+                                    gusb_device->inum = dev->config[c].interface[i].altsetting[a].bInterfaceNumber;
+                                    gusb_device->hio = usb_open(dev);
+                                    if(!gusb_device->hio)
+                                    {
+                                        destroy_usb_desc(gusb_device);
+                                        gusb_device = NULL;
+                                        vpnx_log(0, "Can't open usb device\n");
+                                        return -1;
+                                    }                               
+                                    result = usb_claim_interface(gusb_device->hio, gusb_device->inum);
+                                    if(result < 0)
+                                    {
+                                        vpnx_log(0, "Can't claim USB interface %d [%s]\n",
+                                                            gusb_device->inum, strerror(-result));
+                                        destroy_usb_desc(gusb_device);
+                                        gusb_device = NULL;
+                                        return result;
+                                    }
+                                    vpnx_log(2, "Opened USB device vid=%X pid=%X\n", vid, pid);
+                                    return 0;
+                                }
                             }
                         }
                     }
@@ -389,13 +389,13 @@ int find_usb_device(long vid, long pid)
 
 #ifdef OSX
 
-static IONotificationPortRef	gNotifyPort;
-static io_iterator_t			gAddedIter;
-static CFRunLoopRef				gRunLoop;
+static IONotificationPortRef    gNotifyPort;
+static io_iterator_t            gAddedIter;
+static CFRunLoopRef             gRunLoop;
 
-//	This routine will get called whenever any kIOGeneralInterest notification happens.  We are
-//	interested in the kIOMessageServiceIsTerminated message so that's what we look for.  Other
-//	messages are defined in IOMessage.h.
+//  This routine will get called whenever any kIOGeneralInterest notification happens.  We are
+//  interested in the kIOMessageServiceIsTerminated message so that's what we look for.  Other
+//  messages are defined in IOMessage.h.
 //
 void DeviceNotification(void *refCon, io_service_t service, natural_t messageType, void *messageArgument)
 {
@@ -403,19 +403,19 @@ void DeviceNotification(void *refCon, io_service_t service, natural_t messageTyp
     usb_desc_t *privateDataRef = (usb_desc_t *)refCon;
     
     if (messageType == kIOMessageServiceIsTerminated)
-	{
+    {
         vpnx_log(0, "Device removed.\n");
     
         // Dump our private data to stderr just to see what it looks like.
         vpnx_log(0, "privateDataRef->deviceName: ");
-		CFShow(privateDataRef->deviceName);
-		vpnx_log(0, "privateDataRef->locationID: 0x%lx.\n\n", (unsigned long)privateDataRef->locationID);
+        CFShow(privateDataRef->deviceName);
+        vpnx_log(0, "privateDataRef->locationID: 0x%lx.\n\n", (unsigned long)privateDataRef->locationID);
     
         // Free the data we're no longer using now that the device is going away
         CFRelease(privateDataRef->deviceName);
         
         if (privateDataRef->deviceInterface)
-		{
+        {
             kr = (*privateDataRef->deviceInterface)->Release(privateDataRef->deviceInterface);
         }
         kr = IOObjectRelease(privateDataRef->notification);
@@ -424,29 +424,29 @@ void DeviceNotification(void *refCon, io_service_t service, natural_t messageTyp
     }
 }
 
-//	This routine is the callback for our IOServiceAddMatchingNotification.  When we get called
-//	we will look at all the devices that were added and we will:
+//  This routine is the callback for our IOServiceAddMatchingNotification.  When we get called
+//  we will look at all the devices that were added and we will:
 //
-//	1.  Create some private data to relate to each device (in this case we use the service's name
-//	    and the location ID of the device
-//	2.  Submit an IOServiceAddInterestNotification of type kIOGeneralInterest for this device,
-//	    using the refCon field to store a pointer to our private data.  When we get called with
-//	    this interest notification, we can grab the refCon and access our private data.
+//  1.  Create some private data to relate to each device (in this case we use the service's name
+//      and the location ID of the device
+//  2.  Submit an IOServiceAddInterestNotification of type kIOGeneralInterest for this device,
+//      using the refCon field to store a pointer to our private data.  When we get called with
+//      this interest notification, we can grab the refCon and access our private data.
 //
 void DeviceAdded(void *refCon, io_iterator_t iterator)
 {
-    kern_return_t		kr;
-    io_service_t		usbDevice;
-    IOCFPlugInInterface	**plugInInterface = NULL;
-    SInt32				score;
-    HRESULT 			res;
+    kern_return_t       kr;
+    io_service_t        usbDevice;
+    IOCFPlugInInterface **plugInInterface = NULL;
+    SInt32              score;
+    HRESULT             res;
     
     while ((usbDevice = IOIteratorNext(iterator)))
-	{
-        io_name_t		deviceName;
-        CFStringRef		deviceNameAsCFString;	
+    {
+        io_name_t       deviceName;
+        CFStringRef     deviceNameAsCFString;   
         usb_desc_t      *privateDataRef = NULL;
-        UInt32			locationID;
+        UInt32          locationID;
         
         vpnx_log(1, "Device added.\n");
         
@@ -461,8 +461,8 @@ void DeviceAdded(void *refCon, io_iterator_t iterator)
         
         // Get the USB device's name.
         kr = IORegistryEntryGetName(usbDevice, deviceName);
-		if (KERN_SUCCESS != kr)
-		{
+        if (KERN_SUCCESS != kr)
+        {
             deviceName[0] = '\0';
         }
         
@@ -518,13 +518,13 @@ void DeviceAdded(void *refCon, io_iterator_t iterator)
         
         // Register for an interest notification of this device being removed. Use a reference to our
         // private data as the refCon which will be passed to the notification callback.
-        kr = IOServiceAddInterestNotification(gNotifyPort,						// notifyPort
-											  usbDevice,						// service
-											  kIOGeneralInterest,				// interestType
-											  DeviceNotification,				// callback
-											  privateDataRef,					// refCon
-											  &(privateDataRef->notification)	// notification
-											  );
+        kr = IOServiceAddInterestNotification(gNotifyPort,                      // notifyPort
+                                              usbDevice,                        // service
+                                              kIOGeneralInterest,               // interestType
+                                              DeviceNotification,               // callback
+                                              privateDataRef,                   // refCon
+                                              &(privateDataRef->notification)   // notification
+                                              );
                                                 
         if (KERN_SUCCESS != kr)
         {
@@ -890,29 +890,29 @@ int usb_write(void *pdev, vpnx_io_t *io)
     }
     wc = (int)written;
 #elif defined(Linux)
-		//vpnx_log(2, "usb gonna write %d\n", tosend - sent);
-		wc = usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, tosend - sent, 5000);
-		if (wc < 0)
-		{
-			vpnx_log(0, "usb write failed: %d\n", wc);
-			return wc;
-		}
-		//vpnx_log(2, "usb wrote %d\n", wc);
-		// flush
-		usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, 0, 0);
+        //vpnx_log(2, "usb gonna write %d\n", tosend - sent);
+        wc = usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, tosend - sent, 5000);
+        if (wc < 0)
+        {
+            vpnx_log(0, "usb write failed: %d\n", wc);
+            return wc;
+        }
+        //vpnx_log(2, "usb wrote %d\n", wc);
+        // flush
+        usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, 0, 0);
 #elif defined(OSX)
         wc = tosend - sent;
         if ((*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend + sent, wc) != kIOReturnSuccess)
         {
-			vpnx_log(0, "usb write failed\n");
+            vpnx_log(0, "usb write failed\n");
             wc = -1;
-			return -1;
+            return -1;
         }
-		if ((sent + wc) >= tosend)
-		{
-	        // flush
-	        (*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend, 0);
-		}
+        if ((sent + wc) >= tosend)
+        {
+            // flush
+            (*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend, 0);
+        }
 #endif
         sent += wc;
     }
@@ -925,7 +925,8 @@ int usb_read(void *pdev, vpnx_io_t **io)
     int result;
     
     result = 0;
-
+	*io = NULL;
+	
     // if the read for the current buffer is complete, return that and kick off another
     // asynchronous read
     //
@@ -952,18 +953,18 @@ int usb_read(void *pdev, vpnx_io_t **io)
         }
         else
         {
-			// read a full packet
+            // read a full packet
             remaining = VPNX_PACKET_SIZE;
         }
         // always read multiples of actual transport packet size
         //
-		/*
+        /*
         remaining += dev->readPacketSize - 1;
-		remaining /= dev->readPacketSize;
-		remaining *= dev->readPacketSize;
-		*/
+        remaining /= dev->readPacketSize;
+        remaining *= dev->readPacketSize;
+        */
         vpnx_log(5, "usb read %sstarting async read on [%d] for %d\n", have ? "re-" : "", dev->rx_pong, remaining);
-		
+        
         dev->rx_started[dev->rx_pong] = true;
 #ifdef Windows
         BOOL rv;
@@ -993,40 +994,40 @@ int usb_read(void *pdev, vpnx_io_t **io)
         dev->rx_usb_count[dev->rx_pong] = gotten;
 #endif
 #ifdef Linux
-		result = usb_bulk_read(
-								dev->hio,
-								dev->rep,
-								((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have,
-								remaining,
-								have ? 1500 : 10 /* 10ms timeout for first buffer*/
-								);
-	    if (result == -ETIMEDOUT)
-	    {
-        	result = 0;
-		}
-		if (result < 0)
-		{
-			vpnx_log(0, "usb read failed: %d\n", result);
-			return result;
-		}
-		vpnx_log(5, "usb read %d more\n", result);
-		if (result > 0)
-		{
-			dev->rx_usb_count[dev->rx_pong] += result;
-	        dev->rx_started[dev->rx_pong] = false;
-		    if (dev->rx_usb_count[dev->rx_pong] >= VPNX_PACKET_SIZE/*dev->rx_usb_packet[dev->rx_pong].count*/)
-		    {
-		        // have gotten enough to complete the packet, all done
-		        //
-		        vpnx_log(4, "usb packet [%d] complete\n", dev->rx_pong);
-		        dev->rx_completed[dev->rx_pong] = true;
-		        dev->rx_usb_count[dev->rx_pong] = 0;
-		    }
-		}
-		else
-		{
-        	dev->rx_started[dev->rx_pong] = false;
-		}
+        result = usb_bulk_read(
+                                dev->hio,
+                                dev->rep,
+                                ((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have,
+                                remaining,
+                                have ? 1500 : 100 /* 10ms timeout for first buffer*/
+                                );
+        if (result == -ETIMEDOUT)
+        {
+            result = 0;
+        }
+        if (result < 0)
+        {
+            vpnx_log(0, "usb read failed: %d\n", result);
+            return result;
+        }
+        vpnx_log(5, "usb read %d more\n", result);
+        if (result > 0)
+        {
+            dev->rx_usb_count[dev->rx_pong] += result;
+            dev->rx_started[dev->rx_pong] = false;
+            if (dev->rx_usb_count[dev->rx_pong] >= VPNX_PACKET_SIZE/*dev->rx_usb_packet[dev->rx_pong].count*/)
+            {
+                // have gotten enough to complete the packet, all done
+                //
+                vpnx_log(4, "usb packet [%d] complete\n", dev->rx_pong);
+                dev->rx_completed[dev->rx_pong] = true;
+                dev->rx_usb_count[dev->rx_pong] = 0;
+            }
+        }
+        else
+        {
+            dev->rx_started[dev->rx_pong] = false;
+        }
 #endif
 #ifdef OSX
         CFRunLoopSourceRef  runLoopSource;
@@ -1151,19 +1152,46 @@ void SignalHandler(int sigraised)
 
 static int useage(const char *progname)
 {
-    vpnx_log(0, "Usage: %s -c [-v VID][-p PID][-l loglevel][-r remote-port] [remote-host]\n", progname);
-    vpnx_log(0, "      or  -s [-v VID][-p PID][-l loglevel] -r local-port\n\n");
-    vpnx_log(0, "  -c provides an entry into a VPN from the LAN\n");
-    vpnx_log(0, "     The remote-host/port will be connected to by the extender proxy\n");
-    vpnx_log(0, "     running on the USB connected PC on the VPN when the USB SBC is\n");
-    vpnx_log(0, "     connected to from the LAN at its host/port\n\n");
-    vpnx_log(0, "  -s provides an entry into the LAN from a VPN\n");
-    vpnx_log(0, "     The extender proxy on the USB connected VPN PC will listen on\n");
-    vpnx_log(0, "     local-port for TCP connections which will translate to a connection\n");
-    vpnx_log(0, "     from the USB SBC to a host/port on the LAN\n\n");
-    vpnx_log(0, "  -v look for USB device with this vendor id (VID)\n");
-    vpnx_log(0, "  -p look for USB device with this product id (PID)\n");
-    //vpnx_log(0, "  -t use TLS for TCP connection to local port\n");
+    vpnx_log(0, "Usage: %s -c [-h][-v VID][-p PID][-l loglevel][-r remote-port][remote-host]\n", progname);
+    vpnx_log(0, "   or: %s -s -a local-port [h][-v VID][-p PID][-l loglevel][-r remote-port][remote-host]\n\n", progname);
+    vpnx_log(0, "  -c LAN->VPN client\n");
+    vpnx_log(0, "       A USB connection is translated to a TCP connection to a remote host\n");
+    vpnx_log(0, "       provided in the USB connection request. If the request does not contain\n");
+    vpnx_log(0, "       a hostname, the remtoe-host/remote-port provided on the command line is used\n");
+    vpnx_log(0, "    -h This help text\n");
+    vpnx_log(0, "    -v look for this vendor id (VID) for the USB tunnel (default is 0x3F0)\n");
+    vpnx_log(0, "    -p look for this this product id (PID) for the USB tunnel (default is 0x102)\n");
+    vpnx_log(0, "    -r default port on remote host to access\n");
+    vpnx_log(0, "    remote-host, if supplied, is the default remote host to connect to when a USB\n");
+    vpnx_log(0, "    connection is initiated by the prt proxy and the request doesn't contain a host name\n");
+    vpnx_log(0, "\n");
+    vpnx_log(0, "       Example:\n");
+    vpnx_log(0, "         %s -c -r22 vpnbasedhost\n", progname); 
+    vpnx_log(0, "\n");
+    vpnx_log(0, "       This will make ssh connections from a LAN based host to a host on your VPN possible\n"); 
+    vpnx_log(0, "       using a command line (on the LAN host) like:\n");
+    vpnx_log(0, "\n");
+    vpnx_log(0, "         ssh -p 1234 username@usbtunnelhost\n"); 
+    vpnx_log(0, "\n");
+    vpnx_log(0, "       where usbtunnelhost is the USB tunnel and 1234 is the port the USB tunnel is serving on\n");
+    vpnx_log(0, "\n");
+    vpnx_log(0, "  -s VPN->LAN server\n");
+    vpnx_log(0, "       Listen on local-port for TCP connections and translate them to\n");
+    vpnx_log(0, "       USB connections to the USB tunnel, and then marshall TCP traffic via USB\n");
+    vpnx_log(0, "       to the tunnel which will translate back TCP traffic on the LAN\n");
+    vpnx_log(0, "    -a local port to listen on for TCP connections\n");
+    vpnx_log(0, "    -r port on LAN remote host to access\n");
+    vpnx_log(0, "    remote-host, if supplied, is remote host on LAN to connect to when a TCP connection\n");
+    vpnx_log(0, "    is made to local-port. If not supplied, the default host configured for the USB tunnel is used\n");
+    vpnx_log(0, "\n");
+    vpnx_log(0, "       Example:\n");
+    vpnx_log(0, "         %s -s -a2222 -r22 lanbasedhost\n", progname); 
+    vpnx_log(0, "\n");
+    vpnx_log(0, "       This will make ssh connections to landbasedhost on your LAN possible\n"); 
+    vpnx_log(0, "       using a command line like:\n");
+    vpnx_log(0, "\n");
+    vpnx_log(0, "         ssh -p 2222 username@localhost\n"); 
+    vpnx_log(0, "\n");
     return -1;
 }
 
@@ -1171,7 +1199,8 @@ int main(int argc, const char *argv[])
 {
     int         mode;
     char        remote_host[256];
-    uint16_t    port;
+    uint16_t    remote_port;
+    uint16_t    local_port;
     bool        secure;
     int         loglevel;
     const char *progname;
@@ -1179,23 +1208,24 @@ int main(int argc, const char *argv[])
     const char *arg;
     int         result;
     
-    long	    usbVendor = kVendorID;
-    long	    usbProduct = kProductID;
+    long        usbVendor = kVendorID;
+    long        usbProduct = kProductID;
 #ifndef Windows
-    sig_t	    oldHandler;
+    sig_t       oldHandler;
 #endif
     progname = *argv++;
     argc--;
     
     loglevel = 0;
     remote_host[0] = '\0';
-    port = 2222;
+    remote_port = 22;
+    local_port = 2222;
     secure = false;
     mode = VPNX_CLIENT;
     result = 0;
       
-	vpnx_set_log_level(loglevel);
-	
+    vpnx_set_log_level(loglevel);
+    
     while (argc > 0 && ! result)
     {
         arg = *argv++;
@@ -1238,10 +1268,10 @@ int main(int argc, const char *argv[])
                         return useage(progname);
                     }
                     break;
-                case 'r':
+                case 'a':
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
-                        port = (uint16_t)strtoul(arg + argdex, NULL, 0);
+                        local_port = (uint16_t)strtoul(arg + argdex, NULL, 0);
                         while (arg[argdex] != '\0')
                         {
                             argdex++;
@@ -1249,7 +1279,27 @@ int main(int argc, const char *argv[])
                     }
                     else if (argc > 0)
                     {
-                        port = (uint16_t)strtoul(*argv, NULL, 0);
+                        local_port = (uint16_t)strtoul(*argv, NULL, 0);
+                        argc--;
+                        argv++;
+                    }
+                    else
+                    {
+                        return useage(progname);
+                    }
+                    break;
+                case 'r':
+                    if (arg[argdex] >= '0' && arg[argdex] <= '9')
+                    {
+                        remote_port = (uint16_t)strtoul(arg + argdex, NULL, 0);
+                        while (arg[argdex] != '\0')
+                        {
+                            argdex++;
+                        }
+                    }
+                    else if (argc > 0)
+                    {
+                        remote_port = (uint16_t)strtoul(*argv, NULL, 0);
                         argc--;
                         argv++;
                     }
@@ -1298,6 +1348,9 @@ int main(int argc, const char *argv[])
                         return useage(progname);
                     }
                     break;
+                case 'h':
+                    useage(progname);
+                    return 0;
                 default:
                     return useage(progname);
                 }
@@ -1310,8 +1363,8 @@ int main(int argc, const char *argv[])
         }
     }
 
-	vpnx_set_log_level(loglevel);
-	
+    vpnx_set_log_level(loglevel);
+    
     // sanity check args
     //
     if (mode == VPNX_CLIENT)
@@ -1326,12 +1379,12 @@ int main(int argc, const char *argv[])
 #ifndef Windows
     // Set up a signal handler so we can clean up when we're interrupted from the command line
     // Otherwise we stay in our run loop forever.
-	//
+    //
     oldHandler = signal(SIGINT, SignalHandler);
     if (oldHandler == SIG_ERR)
-	{
+    {
         vpnx_log(0, "Could not establish new signal handler.");
-	}
+    }
 #endif
     vpnx_log(2, "Looking for devices matching vendor ID=%ld and product ID=%ld.\n", usbVendor, usbProduct);
 
@@ -1351,9 +1404,9 @@ int main(int argc, const char *argv[])
                 vpnx_log(0, "Can't open usb device\n");
                 break;
             }
-			else
-			{
-				vpnx_run_loop_init(mode, (void*)gusb_device, remote_host, port);
+            else
+            {
+                vpnx_run_loop_init(mode, (void*)gusb_device, remote_host, remote_port, local_port);
             }
         }
     }
