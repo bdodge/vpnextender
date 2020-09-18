@@ -3,13 +3,13 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B026EF50251137A4004DC4AB /* vpnxprtproxy.c in Sources */ = {isa = PBXBuildFile; fileRef = B026EF4F251137A4004DC4AB /* vpnxprtproxy.c */; };
-		B0FED74D250FE02700273CD9 /* vpnxtcp.c in Sources */ = {isa = PBXBuildFile; fileRef = B0FED74C250FE02700273CD9 /* vpnxtcp.c */; };
-		B0FED7512510773500273CD9 /* vpnextender.c in Sources */ = {isa = PBXBuildFile; fileRef = B0FED74E2510773500273CD9 /* vpnextender.c */; };
+		B0F89513251400FC005F66FB /* vpnxprtproxy.c in Sources */ = {isa = PBXBuildFile; fileRef = B0F8950F251400FC005F66FB /* vpnxprtproxy.c */; };
+		B0F89514251400FC005F66FB /* vpnxtcp.c in Sources */ = {isa = PBXBuildFile; fileRef = B0F89510251400FC005F66FB /* vpnxtcp.c */; };
+		B0F89515251400FC005F66FB /* vpnextender.c in Sources */ = {isa = PBXBuildFile; fileRef = B0F89511251400FC005F66FB /* vpnextender.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,12 +25,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		B026EF4F251137A4004DC4AB /* vpnxprtproxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpnxprtproxy.c; path = ../../common/vpnxprtproxy.c; sourceTree = "<group>"; };
+		B0F8950E251400FC005F66FB /* vpnextender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vpnextender.h; path = ../common/vpnextender.h; sourceTree = "<group>"; };
+		B0F8950F251400FC005F66FB /* vpnxprtproxy.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpnxprtproxy.c; path = ../common/vpnxprtproxy.c; sourceTree = "<group>"; };
+		B0F89510251400FC005F66FB /* vpnxtcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpnxtcp.c; path = ../common/vpnxtcp.c; sourceTree = "<group>"; };
+		B0F89511251400FC005F66FB /* vpnextender.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpnextender.c; path = ../common/vpnextender.c; sourceTree = "<group>"; };
+		B0F89512251400FC005F66FB /* vpnxtcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vpnxtcp.h; path = ../common/vpnxtcp.h; sourceTree = "<group>"; };
 		B0FED73F250E59A500273CD9 /* macvpnproxy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = macvpnproxy; sourceTree = BUILT_PRODUCTS_DIR; };
-		B0FED74C250FE02700273CD9 /* vpnxtcp.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpnxtcp.c; path = ../../common/vpnxtcp.c; sourceTree = "<group>"; };
-		B0FED74E2510773500273CD9 /* vpnextender.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vpnextender.c; path = ../../common/vpnextender.c; sourceTree = "<group>"; };
-		B0FED74F2510773500273CD9 /* vpnextender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vpnextender.h; path = ../../common/vpnextender.h; sourceTree = "<group>"; };
-		B0FED7502510773500273CD9 /* vpnxtcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vpnxtcp.h; path = ../../common/vpnxtcp.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,13 +63,13 @@
 		B0FED741250E59A500273CD9 /* macvpnproxy */ = {
 			isa = PBXGroup;
 			children = (
-				B026EF4F251137A4004DC4AB /* vpnxprtproxy.c */,
-				B0FED74E2510773500273CD9 /* vpnextender.c */,
-				B0FED74F2510773500273CD9 /* vpnextender.h */,
-				B0FED7502510773500273CD9 /* vpnxtcp.h */,
-				B0FED74C250FE02700273CD9 /* vpnxtcp.c */,
+				B0F89511251400FC005F66FB /* vpnextender.c */,
+				B0F8950E251400FC005F66FB /* vpnextender.h */,
+				B0F8950F251400FC005F66FB /* vpnxprtproxy.c */,
+				B0F89510251400FC005F66FB /* vpnxtcp.c */,
+				B0F89512251400FC005F66FB /* vpnxtcp.h */,
 			);
-			path = macvpnproxy;
+			name = macvpnproxy;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -107,7 +107,7 @@
 				};
 			};
 			buildConfigurationList = B0FED73A250E59A500273CD9 /* Build configuration list for PBXProject "macvpnproxy" */;
-			compatibilityVersion = "Xcode 9.3";
+			compatibilityVersion = "Xcode 10.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -129,9 +129,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B026EF50251137A4004DC4AB /* vpnxprtproxy.c in Sources */,
-				B0FED7512510773500273CD9 /* vpnextender.c in Sources */,
-				B0FED74D250FE02700273CD9 /* vpnxtcp.c in Sources */,
+				B0F89513251400FC005F66FB /* vpnxprtproxy.c in Sources */,
+				B0F89515251400FC005F66FB /* vpnextender.c in Sources */,
+				B0F89514251400FC005F66FB /* vpnxtcp.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -243,6 +243,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
 			name = Release;
