@@ -1149,6 +1149,11 @@ void SignalHandler(int sigraised)
     exit(0);
 }
 
+#ifndef VPNX_GUI
+
+// VPNPRTPROXY is being built for command-line / console use
+//
+
 static int useage(const char *progname)
 {
     vpnx_log(0, "Usage: %s -c [-h][-v VID][-p PID][-l loglevel][-r remote-port][remote-host]\n", progname);
@@ -1425,4 +1430,11 @@ int main(int argc, const char *argv[])
     vpnx_log(1, "%s Ends\n", progname);
     return 0;
 }
+#else
 
+// VPNPRTPROXY is being built as a GUI application
+//
+// See GUI file specific to OS/Windowing system for "main"
+//
+
+#endif

@@ -26,11 +26,11 @@ uint16_t s_remote_port;
 ///
 uint16_t s_local_port;
 
-/// mode: client or serfver
+/// mode: client or server
 ///
 static int s_mode;
 
-/// log level, 0 = errors only, 5 = verbose
+/// log level, 0 = errors only, up to 5 = verbose
 ///
 static int s_log_level;
 
