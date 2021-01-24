@@ -647,7 +647,6 @@ void DeviceAdded(void *refCon, io_iterator_t iterator)
                 uint8_t xferType;
                 uint16_t maxPacket;
                 uint8_t interval;
-                uint8_t data[512];
                 int pipe;
                 
                 vpnx_log(4, "Opened interface %d\n", ifaceNo);
@@ -1208,8 +1207,8 @@ int main(int argc, const char *argv[])
     const char *arg;
     int         result;
     
-    long        usbVendor = kVendorID;
-    long        usbProduct = kProductID;
+    unsigned       usbVendor = kVendorID;
+    unsigned       usbProduct = kProductID;
 #ifndef Windows
     sig_t       oldHandler;
 #endif
@@ -1251,7 +1250,7 @@ int main(int argc, const char *argv[])
                 case 'p':
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
-                        usbProduct = strtoul(arg + argdex, NULL, 0);
+                        usbProduct = (unsigned)strtoul(arg + argdex, NULL, 0);
                         while (arg[argdex] != '\0')
                         {
                             argdex++;
@@ -1259,7 +1258,7 @@ int main(int argc, const char *argv[])
                     }
                     else if (argc > 0)
                     {
-                        usbProduct = strtoul(*argv, NULL, 0);
+                        usbProduct = (unsigned)strtoul(*argv, NULL, 0);
                         argc--;
                         argv++;
                     }
@@ -1386,7 +1385,8 @@ int main(int argc, const char *argv[])
         vpnx_log(0, "Could not establish new signal handler.");
     }
 #endif
-    vpnx_log(2, "Looking for devices matching vendor ID=%ld and product ID=%ld.\n", usbVendor, usbProduct);
+    vpnx_log(1, "%s Mode\n", (mode == VPNX_SERVER) ? "Server" : "Client");
+    vpnx_log(2, "Looking for devices matching VendorID=%04x and ProductID=%04x.\n", usbVendor, usbProduct);
 
     // setup
     //

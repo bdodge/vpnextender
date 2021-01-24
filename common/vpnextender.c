@@ -256,6 +256,7 @@ int vpnx_run_loop_slice()
         case VPNX_USBT_SYNC:
             break;
         case VPNX_USBT_CONNECT:
+            remote_port = s_remote_port;
             strncpy(remote_host, s_remote_host, sizeof(remote_host) - 1);
             remote_host[sizeof(remote_host) - 1] = '\0';
             if (io_from_usb->count > 0)
@@ -263,7 +264,7 @@ int vpnx_run_loop_slice()
                 char *pcolon;;
                 
                 // extract remote host spec from message if available
-                strncpy(remote_host, io_from_usb->bytes, sizeof(remote_host) - 1);
+                strncpy(remote_host, (const char*)io_from_usb->bytes, sizeof(remote_host) - 1);
                 if (io_from_usb->count < sizeof(remote_host))
                 {
                     remote_host[io_from_usb->count] = '\0';
@@ -278,7 +279,8 @@ int vpnx_run_loop_slice()
                     *pcolon++ = '\0';
                     remote_port = strtoul(pcolon, NULL, 10);
                 }
-                vpnx_log(3, "USB host specified remote host: %s on port %u\n", remote_host, remote_port);
+                vpnx_log(3, "USB host specified remote host: %s on %s port %u\n",
+                         remote_host, (pcolon) ? "specified" : "default", remote_port);
             }
             vpnx_log(1, "USB host connects, Attempt to connect to TCP %s:%u\n", remote_host, remote_port);
             result = tcp_connect(remote_host, remote_port, &s_tcp_socket);
@@ -310,7 +312,7 @@ int vpnx_run_loop_slice()
             }
             break;
         default:
-            vpnx_log(0, "Unimplemented USB packet typ: %d\n", io_from_usb->type);
+            vpnx_log(0, "Unimplemented USB packet type: %d\n", io_from_usb->type);
             io_from_usb = NULL;
             break;
         }
