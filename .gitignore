@@ -10,6 +10,10 @@ winvpnproxy/vpnextender/.vs
 winvpnproxy/vpnextender/Debug
 winvpnproxy/vpnextender/*.user
 
+macvpnproxy/Build
+macvpnproxy/DerivedData
+macvpnproxy/macvpnproxy.xcodeproj/project.xcworkspace/xcuserdata/
+
 # Prerequisites
 *.d
 
@@ -61,4 +65,4 @@ winvpnproxy/vpnextender/*.user
 modules.order
 Module.symvers
 Mkfile.old
-dkms.conf
+dkms.conf*
