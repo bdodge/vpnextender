@@ -796,7 +796,7 @@ void usb_read_complete(void *refCon, IOReturn kr, void *arg0)
     /*
     if (dev->rx_usb_count[dev->rx_pong] == 0)
     {
-        vpnx_dump_packet("usb rx first packet\n", &dev->rx_usb_packet[dev->rx_pong], 3);
+        vpnx_dump_packet("usb rx first packet\n", &dev->rx_usb_packet[dev->rx_pong], 5);
     }
     */
     if (kr != kIOReturnSuccess)
@@ -1436,5 +1436,80 @@ int main(int argc, const char *argv[])
 //
 // See GUI file specific to OS/Windowing system for "main"
 //
+static enum { gsInit, gsUsbSearch, gsUsbOpened, gsRun } g_state = gsInit;
+static char     x_remote_host[256];
+static uint16_t x_remote_port;
+static uint16_t x_vid;
+static uint16_t x_pid;
+static uint16_t x_local_port;
+static int      x_mode;
+
+int vpnx_gui_init(
+              bool isserver,
+              const char *remote_host,
+              const uint16_t remote_port,
+              const uint16_t vid,
+              const uint16_t pid,
+              const uint16_t local_port,
+              uint32_t log_level,
+              void (*logging_func)(const char *)
+              )
+{
+    strncpy(x_remote_host, remote_host, sizeof(x_remote_host) - 1);
+    x_remote_host[sizeof(x_remote_host) - 1] = '\0';
+    x_remote_port = remote_port;
+    x_vid = vid;
+    x_pid = pid;
+    x_local_port = local_port;
+    x_mode = isserver ? VPNX_SERVER : VPNX_CLIENT;
+    
+    gusb_device = NULL;
+    g_state = gsInit;
+    
+    if (logging_func)
+    {
+        vpnx_set_log_function(logging_func);
+    }
+    vpnx_set_log_level(log_level);
+    
+    return 0;
+}
+
+int vpnx_gui_slice(void)
+{
+    int result;
+    
+    switch (g_state)
+    {
+        case gsInit:
+            // kick off usb device finder
+            result = find_usb_device(x_vid, x_pid);
+            if (result)
+            {
+                vpnx_log(0, "Can't find any USB tunnel devices\n");
+                return result;
+            }
+            g_state = gsUsbSearch;
+            break;
+            
+        case gsUsbSearch:
+            // wait for usb device to be found
+            if (gusb_device)
+            {
+                g_state = gsUsbOpened;
+            }
+            break;
+            
+        case gsUsbOpened:
+            vpnx_run_loop_init(x_mode, gusb_device, x_remote_host, x_remote_port, x_local_port);
+            g_state = gsRun;
+            break;
+        
+        case gsRun:
+            vpnx_run_loop_slice();
+            break;
+    }
+    return 0;
+}
 
 #endif

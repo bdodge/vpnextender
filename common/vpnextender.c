@@ -34,6 +34,14 @@ static int s_mode;
 ///
 static int s_log_level;
 
+/// logging buffer, for windowing guis
+///
+static char s_log_buffer[1024];
+
+/// logging output function
+///
+static void (*s_log_output_function)(const char *);
+
 void vpnx_log(int level, const char *fmt, ...)
 {
     va_list args;
@@ -43,15 +51,96 @@ void vpnx_log(int level, const char *fmt, ...)
         return;
     }
     va_start(args, fmt);
-    if (level != 0)
+    
+    if (s_log_output_function)
     {
-        vprintf(fmt, args);
+        vsnprintf(s_log_buffer, sizeof(s_log_buffer), fmt, args);
+        s_log_output_function(s_log_buffer);
     }
-    else
+    else 
     {
-        vfprintf(stderr, fmt, args);
+        if (level != 0)
+        {
+            vprintf(fmt, args);
+        }
+        else
+        {
+            vfprintf(stderr, fmt, args);
+        }
     }
     va_end(args);
+}
+
+/// ring buffer for logging in to memory
+///
+#define LOG_RING_SIZE (8192)
+static char *s_log = NULL;
+static int s_loghead;
+static int s_logtail;
+static int s_logcount;
+static int s_logsize;
+    
+void vpnx_mem_logger(const char *msg)
+{
+    if (! s_log) 
+    {
+        s_log = (char *)malloc(LOG_RING_SIZE);
+        if (! s_log)
+        {
+            return;
+        }
+        s_logcount = 0;
+        s_loghead = 0;
+        s_logtail = 0;
+        s_logsize = LOG_RING_SIZE;
+    }
+    while (msg && *msg)
+    {
+        s_log[s_loghead++] = *msg++;
+        if (s_loghead >= s_logsize)
+        {
+            s_loghead = 0;
+        }
+        if (s_logcount < s_logsize)
+        {
+            s_logcount++;
+        }
+    }    
+}
+
+void vpnx_get_log_string(char *msg, int nmsg)
+{
+    int count = 0;
+    
+    if (!msg || !nmsg)
+    {
+        return;
+    }
+    msg[0] = '\0';
+    
+    while (msg && (count < (nmsg - 1)))
+    {
+        if (s_logcount <= 0)
+        {
+            break;
+        }
+        msg[count++] = s_log[s_logtail++];
+        if (s_logtail >= s_logsize)
+        {
+            s_logtail = 0;
+        }
+        s_logcount--;
+        if (msg[count - 1] == '\n')
+        {
+            break;
+        }
+    }
+    msg[count] = '\0';
+}
+
+void vpnx_set_log_function(void (*logging_func)(const char *msg))
+{
+    s_log_output_function = logging_func;
 }
 
 void vpnx_set_log_level(uint32_t newlevel)
@@ -152,6 +241,86 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
     vpnx_log(level, "\n");
 }
 
+int vpnx_set_network(const char *apname, const char *password)
+{
+    vpnx_io_t io_packet;    
+    int result;
+    int len;
+    int off;
+    
+    if (!s_usb_device) {
+        vpnx_log(0, "Extender not attached for setting vid/pid\n");
+        return -1;
+    }
+    memset(&io_packet, 0, sizeof(io_packet));
+    io_packet.type = VPNX_USBT_CONFIG_NETWORK;
+    
+    len = snprintf((char*)io_packet.bytes, sizeof(io_packet.bytes) - 32, "%s\n", apname);
+    off = len;
+    len += snprintf((char*)io_packet.bytes + len, sizeof(io_packet.bytes) - len - 2, "%s", password);
+    
+    io_packet.count = len;
+    io_packet.srcport = 0;
+    io_packet.dstport = off;
+
+    vpnx_dump_packet("USB Tx net config", &io_packet, 5);
+    result = usb_write(s_usb_device, &io_packet);
+    if (result)
+    {
+        vpnx_log(0, "USB packet write error setting network config\n");
+        return result;
+    }
+    return 0;
+}
+
+int vpnx_set_vidpid(uint16_t vid, uint16_t pid)
+{
+    vpnx_io_t io_packet;    
+    int result;
+
+    if (!s_usb_device) {
+        vpnx_log(0, "Extender not attached for setting vid/pid\n");
+        return -1;
+    }
+    memset(&io_packet, 0, sizeof(io_packet));
+    io_packet.type = VPNX_USBT_CONFIG_VIDPID;
+    io_packet.count = 0;
+    io_packet.srcport = vid;
+    io_packet.dstport = pid;
+
+    vpnx_dump_packet("USB Tx vid/pid", &io_packet, 5);
+    result = usb_write(s_usb_device, &io_packet);
+    if (result)
+    {
+        vpnx_log(0, "USB packet write error setting vid/pid\n");
+        return result;
+    }
+    return 0;
+}
+
+void vpnx_reboot_extender()
+{
+    vpnx_io_t io_packet;    
+    int result;
+
+    if (!s_usb_device) {
+        vpnx_log(0, "Extender not attached for rebooting\n");
+        return;
+    }
+    memset(&io_packet, 0, sizeof(io_packet));
+    io_packet.type = VPNX_USBT_REBOOT;
+    io_packet.count = 0;
+    io_packet.srcport = 0xFEED;
+    io_packet.dstport = 0xFACE;
+
+    vpnx_dump_packet("USB reboot", &io_packet, 5);
+    result = usb_write(s_usb_device, &io_packet);
+    if (result)
+    {
+        vpnx_log(0, "USB packet write error rebooting\n");
+    }
+}
+
 int vpnx_run_loop_slice()
 {
     static vpnx_io_t   io_packet;
@@ -200,7 +369,7 @@ int vpnx_run_loop_slice()
                 return -1;
             }
         }
-        vpnx_dump_packet("USB Tx[connect]", &io_packet, 3);
+        vpnx_dump_packet("USB Tx[connect]", &io_packet, 5);
 
         // flush any old data in driver
         //
@@ -215,7 +384,7 @@ int vpnx_run_loop_slice()
             }
             if (io_from_usb)
             {
-                vpnx_dump_packet("Flushing usb data on connect", io_from_usb, 1);
+                vpnx_dump_packet("Flushing usb data on connect", io_from_usb, 3);
             }
         }
         while (io_from_usb);
@@ -237,7 +406,7 @@ int vpnx_run_loop_slice()
     }
     if (io_from_usb)
     {
-        vpnx_dump_packet("USB Rx", io_from_usb, 3);
+        vpnx_dump_packet("USB Rx", io_from_usb, 5);
 
         switch (io_from_usb->type)
         {
@@ -311,6 +480,16 @@ int vpnx_run_loop_slice()
                 s_tcp_socket = INVALID_SOCKET;
             }
             break;
+#if TUNNEL_BUILD
+        case VPNX_USBT_CONFIG_NETWORK:
+            break;
+        case VPNX_USBT_CONFIG_VIDPID:
+            break;
+        case VPNX_USBT_REBOOT:
+            vpnx_log(1, "Rebooting\n");
+            system("reboot\n");
+            break;
+#endif
         default:
             vpnx_log(0, "Unimplemented USB packet type: %d\n", io_from_usb->type);
             io_from_usb = NULL;
@@ -323,7 +502,7 @@ int vpnx_run_loop_slice()
     {
         if (s_tcp_socket != INVALID_SOCKET)
         {
-            vpnx_dump_packet("TCP Tx", io_to_tcp, 3);
+            vpnx_dump_packet("TCP Tx", io_to_tcp, 5);
             result = tcp_write(s_tcp_socket, io_to_tcp);
             if (result != 0)
             {
@@ -364,7 +543,7 @@ int vpnx_run_loop_slice()
             //
             if (io_from_tcp && io_from_tcp->count)
             {
-                vpnx_dump_packet("TCP Rx", io_from_tcp, 3);
+                vpnx_dump_packet("TCP Rx", io_from_tcp, 5);
                 io_to_usb = io_from_tcp;
                 io_to_usb->type = VPNX_USBT_DATA;
             }
@@ -372,7 +551,7 @@ int vpnx_run_loop_slice()
     }
     if (io_to_usb)
     {
-        vpnx_dump_packet("USB Tx", io_to_usb, 3);
+        vpnx_dump_packet("USB Tx", io_to_usb, 5);
         result = usb_write(s_usb_device, io_to_usb);
         if (result)
         {

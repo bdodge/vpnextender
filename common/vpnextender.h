@@ -44,12 +44,15 @@
 
 /// types of packets
 ///
-#define VPNX_USBT_DATA          0
-#define VPNX_USBT_PING          1
-#define VPNX_USBT_SYNC          2
-#define VPNX_USBT_MSG           3
-#define VPNX_USBT_CLOSE         4
-#define VPNX_USBT_CONNECT       5
+#define VPNX_USBT_DATA              0
+#define VPNX_USBT_PING              1
+#define VPNX_USBT_SYNC              2
+#define VPNX_USBT_MSG               3
+#define VPNX_USBT_CLOSE             4
+#define VPNX_USBT_CONNECT           5
+#define VPNX_USBT_CONFIG_NETWORK    6
+#define VPNX_USBT_CONFIG_VIDPID     7
+#define VPNX_USBT_REBOOT            8
 
 /// The USB data transfer packet type
 ///
@@ -103,9 +106,27 @@ extern int usb_write(void *dev, vpnx_io_t *io);
 extern int usb_read(void *dev, vpnx_io_t **io);
 
 void vpnx_log(int level, const char *fmt, ...);
+void vpnx_mem_logger(const char *msg);
+void vpnx_get_log_string(char *msg, int nmsg);
+void vpnx_set_log_function(void (*logging_func)(const char *));
 void vpnx_set_log_level(uint32_t newlevel);
+void vpnx_reboot_extender(void);
+int  vpnx_set_vidpid(uint16_t vid, uint16_t pid);
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level);
-int vpnx_run_loop_slice(void);
-int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port, uint16_t local_port);
+int  vpnx_run_loop_slice(void);
+int  vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port, uint16_t local_port);
 
+#ifdef VPNX_GUI
+int vpnx_gui_init(
+              bool isserver,
+              const char *remote_host,
+              const uint16_t remote_port,
+              const uint16_t vid,
+              const uint16_t pid,
+              const uint16_t local_port,
+              uint32_t log_level,
+              void (*logging_func)(const char *)
+              );
+int vpnx_gui_slice(void);
+#endif
 #endif
