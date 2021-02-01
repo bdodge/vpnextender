@@ -6,7 +6,7 @@ ifndef TARGET_BOARD
 #	TARGET_BOARD=bbb
 endif
 
-CFLAGS=-O2 -DLinux -DTUNNEL_BUILD -DTARGET_BOARD=$(TARGET_BOARD) -I../common
+CFLAGS=-O2 -DLinux -DTUNNEL_BUILD -DTARGET_BOARD=$(TARGET_BOARD) -I../common -I../usbtunnel
 
 # most systems have h/w float
 # but not the raspberry pi zero
@@ -21,12 +21,15 @@ endif
 CROSS_CC=$(CROSS_COMPILE)gcc
 
 
-HEADERS=../common/vpnextender.h ../common/vpnxtcp.h
+HEADERS=tunnelsettings.h ../common/vpnextender.h ../common/vpnxtcp.h
 
-usbtunnel: usbtunnel.o vpnxtcp.o vpnextender.o
+usbtunnel: usbtunnel.o tunnelsettings.o vpnxtcp.o vpnextender.o
 	$(CROSS_CC) -o $@ $(CFLAGS) $^
 
 usbtunnel.o: usbtunnel.c $(HEADERS)
+	$(CROSS_CC) -c $(CFLAGS) -o $@ $<
+
+tunnelsettings.o: tunnelsettings.c $(HEADERS)
 	$(CROSS_CC) -c $(CFLAGS) -o $@ $<
 
 vpnextender.o: ../common/vpnextender.c $(HEADERS)

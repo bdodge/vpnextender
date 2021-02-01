@@ -1,6 +1,9 @@
 
 #include "vpnextender.h"
 #include "vpnxtcp.h"
+#if TUNNEL_BUILD
+#include "tunnelsettings.h"
+#endif
 
 /// USB device (opaque handle)
 ///
@@ -255,8 +258,8 @@ int vpnx_set_network(const char *apname, const char *password)
     memset(&io_packet, 0, sizeof(io_packet));
     io_packet.type = VPNX_USBT_CONFIG_NETWORK;
     
-    len = snprintf((char*)io_packet.bytes, sizeof(io_packet.bytes) - 32, "%s\n", apname);
-    off = len;
+    len = snprintf((char*)io_packet.bytes, sizeof(io_packet.bytes) - 32, "%s", apname);
+    off = len + 1; // keep 0 byte between name and pass
     len += snprintf((char*)io_packet.bytes + len, sizeof(io_packet.bytes) - len - 2, "%s", password);
     
     io_packet.count = len;
@@ -482,12 +485,32 @@ int vpnx_run_loop_slice()
             break;
 #if TUNNEL_BUILD
         case VPNX_USBT_CONFIG_NETWORK:
+            {
+                const char *netname;
+                const char *netpass;
+                
+                netname = io_from_usb->bytes + io_from_usb->srcport;
+                netpass = io_from_usb->bytes + io_from_usb->dstport;
+                
+                result = tunnel_set_netconfig(netname, netpass);
+                result = 0; // ignore failure?
+            }
             break;
         case VPNX_USBT_CONFIG_VIDPID:
+            {
+                uint16_t vid;
+                uint16_t pid;
+                
+                vid = io_from_usb->srcport;
+                pid = io_from_usb->dstport;
+
+                result = tunnel_set_vidpid(vid, pid);
+                result = 0; // ignore failure?
+            }
             break;
         case VPNX_USBT_REBOOT:
             vpnx_log(1, "Rebooting\n");
-            system("reboot\n");
+            tunnel_reboot_device();
             break;
 #endif
         default:

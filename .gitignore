@@ -2,7 +2,7 @@
 *.bak
 
 # program
-usbtunnel
+usbtunnel/usbtunnel
 
 # xcode state
 
