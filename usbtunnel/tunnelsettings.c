@@ -17,10 +17,10 @@ static const char s_fmt[] =
 // command line to wpa_cli
 //
 static const char s_wpa_config[] =
-	"wpa_cli select_network 0\nset_network 0 ssid \"%s\"\nset_network 0 psk \"%s\"\nsave config\nenable_network 0\n";
+	"sudo wpa_cli set_network 0 ssid \'\"%s\"\';wpa_cli set_network 0 psk \'\"%s\"\';wpa_cli save config;wpa_cli enable_network 0";
 
 static const char s_wpa_restart[] =
-	"systemctl restart wpa_supplicant\n";
+	"sudo systemctl restart wpa_supplicant\n";
 
 static int tunnel_setup_wifi(const char *netname, const char *netpass)
 {
@@ -29,13 +29,19 @@ static int tunnel_setup_wifi(const char *netname, const char *netpass)
 	int len;
 	
 	len = snprintf(cmd, sizeof(cmd), s_wpa_config, netname, netpass);
-	return (len > sizeof(s_wpa_config)) ? 0 : -1;
-	vpnx_log(2, "wifi:%s\n", s_wpa_config);
+	if (len <= sizeof(s_wpa_config))
+	{
+		vpnx_log(0, "Can't format wifi config\n");
+		return -1;
+	}
+	vpnx_log(2, "wifi:%s\n", cmd);
 	result = system(cmd);
+	return 0;
 }
 
 static int tunnel_restart_wifi(void)
 {
+	vpnx_log(2, "wifi restart\n");
 	int result = system(s_wpa_restart);
 }
 
@@ -150,6 +156,8 @@ int tunnel_get_netconfig(char *netname, int nnetname, char *netpass, int nnetpas
 
 int tunnel_set_netconfig(const char *netname, const char *netpass)
 {
+	vpnx_log(1, "Setting wifi network %s\n", netname);
+	
 	if (!tunnel_setup_wifi(netname, netpass))
 	{
 		tunnel_restart_wifi();

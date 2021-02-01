@@ -6,7 +6,7 @@ ifndef TARGET_BOARD
 #	TARGET_BOARD=bbb
 endif
 
-CFLAGS=-O2 -DLinux -DTUNNEL_BUILD -DTARGET_BOARD=$(TARGET_BOARD) -I../common -I../usbtunnel
+CFLAGS=-g -DLinux -DTUNNEL_BUILD -DTARGET_BOARD=$(TARGET_BOARD) -I../common -I../usbtunnel
 
 # most systems have h/w float
 # but not the raspberry pi zero
