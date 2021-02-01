@@ -7,7 +7,7 @@
 
 /// USB device (opaque handle)
 ///
-static void *s_usb_device;
+static void *s_usb_device = NULL;
 
 /// TCP server socket
 ///
@@ -266,7 +266,7 @@ int vpnx_set_network(const char *apname, const char *password)
     io_packet.srcport = 0;
     io_packet.dstport = off;
 
-    vpnx_dump_packet("USB Tx net config", &io_packet, 5);
+    vpnx_dump_packet("USB Tx net config", &io_packet, 3);
     result = usb_write(s_usb_device, &io_packet);
     if (result)
     {
@@ -291,7 +291,7 @@ int vpnx_set_vidpid(uint16_t vid, uint16_t pid)
     io_packet.srcport = vid;
     io_packet.dstport = pid;
 
-    vpnx_dump_packet("USB Tx vid/pid", &io_packet, 5);
+    vpnx_dump_packet("USB Tx vid/pid", &io_packet, 3);
     result = usb_write(s_usb_device, &io_packet);
     if (result)
     {
@@ -316,7 +316,7 @@ void vpnx_reboot_extender()
     io_packet.srcport = 0xFEED;
     io_packet.dstport = 0xFACE;
 
-    vpnx_dump_packet("USB reboot", &io_packet, 5);
+    vpnx_dump_packet("USB reboot", &io_packet, 3);
     result = usb_write(s_usb_device, &io_packet);
     if (result)
     {
@@ -377,7 +377,7 @@ int vpnx_run_loop_slice()
                 return -1;
             }
         }
-        vpnx_dump_packet("USB Tx[connect]", &io_packet, 5);
+        vpnx_dump_packet("USB Tx[connect]", &io_packet, 3);
 
         // flush any old data in driver
         //
@@ -392,7 +392,7 @@ int vpnx_run_loop_slice()
             }
             if (io_from_usb)
             {
-                vpnx_dump_packet("Flushing usb data on connect", io_from_usb, 3);
+                vpnx_dump_packet("Flushing usb data on connect", io_from_usb, 2);
             }
         }
         while (io_from_usb);
@@ -414,7 +414,7 @@ int vpnx_run_loop_slice()
     }
     if (io_from_usb)
     {
-        vpnx_dump_packet("USB Rx", io_from_usb, 5);
+        vpnx_dump_packet("USB Rx", io_from_usb, 3);
 
         switch (io_from_usb->type)
         {
@@ -530,7 +530,7 @@ int vpnx_run_loop_slice()
     {
         if (s_tcp_socket != INVALID_SOCKET)
         {
-            vpnx_dump_packet("TCP Tx", io_to_tcp, 5);
+            vpnx_dump_packet("TCP Tx", io_to_tcp, 3);
             result = tcp_write(s_tcp_socket, io_to_tcp);
             if (result != 0)
             {
@@ -571,7 +571,7 @@ int vpnx_run_loop_slice()
             //
             if (io_from_tcp && io_from_tcp->count)
             {
-                vpnx_dump_packet("TCP Rx", io_from_tcp, 5);
+                vpnx_dump_packet("TCP Rx", io_from_tcp, 3);
                 io_to_usb = io_from_tcp;
                 io_to_usb->type = VPNX_USBT_DATA;
             }
@@ -579,7 +579,7 @@ int vpnx_run_loop_slice()
     }
     if (io_to_usb)
     {
-        vpnx_dump_packet("USB Tx", io_to_usb, 5);
+        vpnx_dump_packet("USB Tx", io_to_usb, 3);
         result = usb_write(s_usb_device, io_to_usb);
         if (result)
         {
@@ -593,9 +593,13 @@ int vpnx_run_loop_slice()
 int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port, uint16_t local_port)
 {
     int result;
+    static bool wasInited = false;
     
-#ifdef Windows
+    if (! wasInited)
     {
+        // first-time initialization
+        //
+#ifdef Windows
         // init win32 wsa
         WORD    wVersionRequested;
         WSADATA wsaData;
@@ -603,11 +607,29 @@ int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint
         wVersionRequested = MAKEWORD( 1, 1 );
     
         WSAStartup(wVersionRequested, &wsaData);
+#endif                
+        s_server_socket = INVALID_SOCKET;
+        s_tcp_socket = INVALID_SOCKET;
+        
+        s_usb_device = NULL;
+        
+        wasInited = true;
     }
-#endif
     s_mode = mode;
     s_usb_device = usb_device;
+
+    // this is restartable, so make sure we're cleaned up
+    //
+    if (s_server_socket != INVALID_SOCKET)
+    {
+        closesocket(s_server_socket);
+    }
     s_server_socket = INVALID_SOCKET;
+
+    if (s_tcp_socket != INVALID_SOCKET)
+    {
+        closesocket(s_tcp_socket);
+    }
     s_tcp_socket = INVALID_SOCKET;
 
     strncpy(s_remote_host, remote_host, sizeof(s_remote_host) - 1);

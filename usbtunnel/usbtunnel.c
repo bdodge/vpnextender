@@ -127,7 +127,7 @@ int usb_open_device(long vid, long pid)
 	    // system("rmmod -f g_multi");
 	    snprintf(sysCmd, sizeof(sysCmd),
 	            "modprobe g_printer"
-	            " idVendor=%ld idProduct=%ld name=vpn-extender qlen=16",
+	            " idVendor=%ld idProduct=%ld name=\"vpn-extender\" qlen=16",
 	            vid, pid
 	         );
 		if (system(sysCmd) == -1)
@@ -513,34 +513,43 @@ int main(int argc, const char *argv[])
         
     vpnx_log(1, "Setting USB device vendor ID=%ld and product ID=%ld\n", usbVendor, usbProduct);
 
-    // setup
-    //
-    result = 0;
-    s_usbd = -1;
-	
-	if (s_usbd < 0)
-	{		
-        // Open USB device
-        //
-        result = usb_open_device(usbVendor, usbProduct);
-		if (result)
-		{
-			vpnx_log(0, "No USB device, FATAL Error\n");
-		}
-		else
-		{
-			vpnx_run_loop_init(mode, (void*)s_usbd, remote_host, port, port);
-		}
-	}
-	while (! result)
+	do
 	{
-		result = vpnx_run_loop_slice();
+		vpnx_log(1, "Starting %s\n", progname);
+		
+	    // setup
+	    //
+	    result = 0;
+	    s_usbd = -1;
+		
+		if (s_usbd < 0)
+		{		
+	        // Open USB device
+	        //
+	        result = usb_open_device(usbVendor, usbProduct);
+			if (result)
+			{
+				vpnx_log(0, "No USB device, FATAL Error\n");
+			}
+			else
+			{
+				vpnx_run_loop_init(mode, (void*)s_usbd, remote_host, port, port);
+			}
+		}
+		while (! result)
+		{
+			result = vpnx_run_loop_slice();
+		}
+	    if (s_usbd >= 0)
+	    {
+	        close(s_usbd);
+			s_usbd = -1;
+	    }
 	}
-    if (s_usbd >= 0)
-    {
-        close(s_usbd);
-    }
-    vpnx_log(1, "%s Ends\n", progname);
+	while (1); //forever
+	
+    //vpnx_log(1, "%s Ends\n", progname);
+	
     return 0;
 }
 
