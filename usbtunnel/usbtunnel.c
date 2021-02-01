@@ -48,7 +48,7 @@ static int s_usbd = -1;
 
 static int s_connected, s_rxcnt, s_txcnt;
 
-#if 1
+#if TARGET_BOARD == bbb
 
 static void SetLED(int led, int onoff)
 {
@@ -127,10 +127,13 @@ int usb_open_device(long vid, long pid)
 	    // system("rmmod -f g_multi");
 	    snprintf(sysCmd, sizeof(sysCmd),
 	            "modprobe g_printer"
-	            " idVendor=%ld idProduct=%ld qlen=16",
+	            " idVendor=%ld idProduct=%ld name=vpn-extender qlen=16",
 	            vid, pid
 	         );
-	    system(sysCmd); 
+		if (system(sysCmd) == -1)
+		{
+			vpnx_log(0, "Setup failed\n");
+		}
     }
     // open the appropriate device for the endpoint
     //
@@ -308,6 +311,13 @@ static int useage(const char *progname)
 {
     vpnx_log(0, "Usage: %s -c [-h][-v VID][-p PID][-l loglevel][-r remote-port] [remote-host]\n", progname);
 	vpnx_log(0, "   or: %s -s -a local-port [-h][-v VID][-p PID][-l loglevel]\n\n", progname);
+	vpnx_log(0, "\n");
+	vpnx_log(0, "This VPN extender component is meant to run on an embedded Linux device\n");
+	vpnx_log(0, "connected as if it were a USB printer to your PC/laptop host. It uses\n");
+	vpnx_log(0, "the USB connection to marshall TCP/IP traffic between your VPN connected host\n");
+	vpnx_log(0, "and a networked host on your local area network (LAN)\n\n");
+	vpnx_log(0, "It can run in client mode, to enable your LAN host to connect to a system in your VPN\n");
+	vpnx_log(0, "or in server mode, to enable your VPN'd host to connect to a system in your LAN\n");
     vpnx_log(0, "  -c VPN->LAN client\n");
 	vpnx_log(0, "       A USB connection is translated to a TCP connection to the LAN based remote host\n");
     vpnx_log(0, "       specified in the USB connection, or if not present, the default remote host specified\n");
@@ -322,7 +332,8 @@ static int useage(const char *progname)
     vpnx_log(0, "    -a (or -r) local port to listen on for incoming TCP connections\n");
     vpnx_log(0, "    -v use this vendor id (VID) for the USB device\n");
     vpnx_log(0, "    -p use this product id (PID) for the USB device\n");
-    vpnx_log(0, "    -h This help text\n");
+	vpnx_log(0, "\n");
+    vpnx_log(0, "  -h This help text\n");
     return -1;
 }
 

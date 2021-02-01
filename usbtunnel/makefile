@@ -1,8 +1,25 @@
 
-CROSS_COMPILE=arm-linux-gnueabihf-
+ifndef TARGET_BOARD
+	TARGET_BOARD=rpi0
+#	TARGET_BOARD=rpi3
+#	TARGET_BOARD=rpi4
+#	TARGET_BOARD=bbb
+endif
+
+CFLAGS=-O2 -DLinux -DTUNNEL_BUILD -DTARGET_BOARD=$(TARGET_BOARD) -I../common
+
+# most systems have h/w float
+# but not the raspberry pi zero
+
+ifeq ($(TARGET_BOARD),rpi0)
+	CROSS_COMPILE=arm-linux-gnueabi-
+	CFLAGS+=-marm -march=armv6  -mfloat-abi=soft
+else
+	CROSS_COMPILE=arm-linux-gnueabihf-
+endif
+
 CROSS_CC=$(CROSS_COMPILE)gcc
 
-CFLAGS=-g -DLinux -I../common
 
 HEADERS=../common/vpnextender.h ../common/vpnxtcp.h
 
@@ -18,3 +35,6 @@ vpnextender.o: ../common/vpnextender.c $(HEADERS)
 vpnxtcp.o: ../common/vpnxtcp.c  $(HEADERS)
 	$(CROSS_CC) -c $(CFLAGS) -o $@ $<
 
+clean:
+	rm -rf *.o usbtunnel
+	

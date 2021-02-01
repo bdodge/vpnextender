@@ -1,0 +1,138 @@
+Using A - Raspberry Pi W
+Setup for headless WiFi SSH access from Linux desktop (probably works with Windows/Mac similarly)
+
+1) using rpi-imager, select "RASPBERRY PI OS LITE (32-B?IT), your SD card and the "WRITE"
+ 
+2) mount the SD card on your desktop, it should just mount when rpi-imager is done, or just remove it and stick it back in if it doesn't.
+
+3) Linux, the boot partition is mounted on /media/<username>/boot.
+    cd there
+	
+	> cd /media/<username>/boot
+	
+4) Enable ssh
+	
+	> echo " " > ssh
+	
+	That tells the pi to enable ssh on boot
+
+5) Setup WiFi network
+	
+	edit a new file (in the boot directory) and add the contents
+	
+country=US
+  ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+  update_config=1
+
+  network={
+      ssid="NETWORK-NAME"
+      psk="NETWORK-PASSWORD"
+  }
+
+     replacing wifi network and password with your own settings
+	
+	 save the file as "wpa_supplicant.conf"
+
+6) Setup overlay for USB Gadget support
+
+     edit the existing file "config.txt" on the boot partition
+
+     at the end of the file add the text
+
+dtoverlay=dwc2
+
+     then save the file
+	 
+	 edit the existing file "cmdline.txt" on the boot partition.
+	 in the command line, after "rootwait" add the text
+	 
+	 modules-load=dw2c
+	 
+	 so the cmdline looks something like:
+	 
+     console=serial0,115200 console=tty1 root=PARTUUID=6e9a433e-02 rootfstype=ext4 elevator=deadline fsck.repair=yes rootwait modules-load=dwc2
+	 
+	 save that file, and unmount (eject) the SD card from your PC
+
+7) put the SD card in the rPi and connect a single micro-USB cable
+	 between it and your computer and wait a bit for the rPi to boot.
+	 It might take a few minutes for the first boot. 
+	 
+8) ssh to the rPi from your PC as user "pi"
+	 
+	 > ssh pi@raspberrypi.local
+	
+	 You should get text like:
+The authenticity of host 'raspberrypi.local (192.168.1.241)' can't be established.
+ECDSA key fingerprint is SHA256:8e8jEymuLsPE4uCcBkC37G5XZx5j/qLgkXwEztfbaWA.
+Are you sure you want to continue connecting (yes/no/[fingerprint])?
+
+     So type "yes" (or accept "yes")
+	 
+Warning: Permanently added 'raspberrypi.local,192.168.1.241' (ECDSA) to the list of known hosts.
+
+     Login to the rPi with the default password "raspberry"
+	 
+	 password: raspberry
+	 
+9) expand file-system and change user/password on the ssh prompt
+	 
+	 > sudo raspi-config
+	
+	 select "System Options" and "Password"
+	 change your password to whatever. "pi" and select <Select>
+	 
+	 select "System Options" (if you went all the way back there)
+	 then select "Hostname"
+	 change the hostname to "vpn-extender<n>" where n is the
+	 number of the extender if more than one, or just blank if you have one.
+	 
+	 select "Advanced Options" and "Expand Filesystem"
+	 
+	 say yes to "reboot", or, <Finish> and reboot by
+	 
+	 > sudo reboot
+	 
+10) Verify changes
+	 
+	 > ssh pi@vpn-extender.local
+	 
+	 (say yes to prompt)
+	 
+	 pi@vpn-extender.local's password: pi
+	 
+11) setup service for starting extender at boot. On the rPi prompt
+	 
+	 > cd /lib/systemd/system
+	 > sudo nano vpn-extender.service
+	 
+	 add this content to that file
+
+[Unit]
+Description=A VPN extender
+After=network.target
+
+[Service]
+Type=simple
+PIDFile=/run/vpnextender.pid
+ExecStart=/home/pi/usbtunnel -c -r631 192.168.1.142
+
+[Install]
+WantedBy=multi-user.target
+	 
+	 Enable the service by
+	 
+	 > sudo systemctl enable vpn-extender.service
+	 
+	 which should create a link to the service file in /lib
+	 
+	 Test start it by:
+	 
+     > sudo systemctl start vpn-extender.service
+	 
+	 Then see the result in the syslog
+	 
+	 > tail /var/log/syslog
+
+
+
