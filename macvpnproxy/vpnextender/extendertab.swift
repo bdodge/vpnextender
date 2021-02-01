@@ -30,6 +30,7 @@ class extendertab: NSViewController {
     @IBAction func onApply(_ sender: Any) {
         myParent?.def_netname = netname.stringValue
         myParent?.def_netpass = netpass.stringValue
+        vpnx_set_network(netname.stringValue, netpass.stringValue)
         myParent?.StoreSettings()
      }
 }

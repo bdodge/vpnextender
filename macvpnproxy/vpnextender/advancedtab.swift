@@ -84,7 +84,7 @@ class advancedtab: NSViewController, NSTextFieldDelegate {
     @IBAction func onRestartExtender(_ sender: Any) {
         myParent?.StopExtender();
         vpnx_reboot_extender();
-        myParent?.StartExtender();
+        //myParent?.StartExtender();
     }
     
     @IBAction func onDefaults(_ sender: Any) {

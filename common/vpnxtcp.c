@@ -33,7 +33,14 @@ int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
     {
         return result;
     }
+#ifndef VPNX_GUI
     nonblock = 0;
+#else
+    // gui wants to control the threading for cancel events so
+    // don't block (much) here
+    nonblock = 1;
+#endif
+    nonblock = 1;
     result = ioctlsocket(sock, FIONBIO, &nonblock);
     if (result < 0)
     {
@@ -67,14 +74,37 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
     struct sockaddr_in cli_addr;
     socklen_t clilen;
     SOCKET clientsock;
-
-    vpnx_log(3, "Accepting connections now\n");
+    fd_set  afds;
+    struct  timeval timeout;
+    int sv;
     
-    clilen = sizeof(cli_addr);
-    clientsock = accept(serversock, (struct sockaddr *)&cli_addr, &clilen);
-
-    vpnx_log(3, "Connection: %d\n", clientsock);
+    *clientsock_ptr = INVALID_SOCKET;
     
+    vpnx_log(5, "Accepting connections now\n");
+        
+    // select for connections to use non-blocking sockets. there is nothing to do
+    // as a server while waiting for a connection, so no reason to not wait long but
+    // then we could miss a usb message, and/or make a GUI non-responsive, so dont
+    // wait too long here
+    //
+    FD_ZERO (&afds);
+    FD_SET  (serversock, &afds);
+    
+#ifndef VPNX_GUI
+    timeout.tv_sec  = 1;
+#else
+    timeout.tv_sec  = 0;
+#endif
+    timeout.tv_usec = 40000;
+    
+    sv = select(serversock + 1, &afds, NULL, NULL, &timeout);
+
+    clientsock = INVALID_SOCKET;
+    if (sv > 0)
+    {
+        clilen = sizeof(cli_addr);
+        clientsock = accept(serversock, (struct sockaddr *)&cli_addr, &clilen);
+    }
     if (clientsock != INVALID_SOCKET)
     {
         #ifdef Windows
@@ -82,6 +112,9 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
         #else
         uint32_t nonblock;
         #endif
+
+        vpnx_log(3, "Connection: %d\n", clientsock);
+             
         nonblock = 1;
         if (ioctlsocket(clientsock, FIONBIO, &nonblock) < 0)
         {
@@ -92,8 +125,19 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
 		*clientsock_ptr = clientsock;
 	    return 0;
     }
-	vpnx_log(0, "Accept failed\n");
-	return -1;
+    else if (sv > 0)
+    {
+        vpnx_log(0, "Accept failed\n");
+        return -1;
+    }
+    else if (sv < 0)
+    {
+        vpnx_log(0, "Server socket failed\n");
+        closesocket(serversock);
+        serversock = INVALID_SOCKET;
+        return -1;
+    }
+    return 0;
 }
 
 int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)

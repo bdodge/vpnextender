@@ -259,8 +259,8 @@ int vpnx_set_network(const char *apname, const char *password)
     io_packet.type = VPNX_USBT_CONFIG_NETWORK;
     
     len = snprintf((char*)io_packet.bytes, sizeof(io_packet.bytes) - 32, "%s", apname);
-    off = len + 1; // keep 0 byte between name and pass
-    len += snprintf((char*)io_packet.bytes + len, sizeof(io_packet.bytes) - len - 2, "%s", password);
+    off = len + 2; // keep 0 byte between name and pass
+    len += snprintf((char*)io_packet.bytes + off, sizeof(io_packet.bytes) - len - 3, "%s", password);
     
     io_packet.count = len;
     io_packet.srcport = 0;
@@ -352,6 +352,11 @@ int vpnx_run_loop_slice()
         if (result)
         {
             return result;
+        }
+        if (s_tcp_socket == INVALID_SOCKET)
+        {
+            // timedout waiting for connection
+            return 0;
         }
         // got us a live one. tell the USB side to connect
         //

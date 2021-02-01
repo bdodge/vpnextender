@@ -21,7 +21,8 @@ class ViewController: NSTabViewController {
     var settings : UserDefaults = UserDefaults.standard
     
     var xferq : DispatchQueue = DispatchQueue(label: "com.bdd.vpnxq", attributes: .concurrent)
-    var abortxfer : Bool = false
+    var xfer_work_item : DispatchWorkItem?
+    var xferrunning : Bool = false
     
     override func viewDidLoad() {
 
@@ -57,6 +58,10 @@ class ViewController: NSTabViewController {
     func StartExtender() {
         var result : Int32
         
+        if (xferrunning) {
+            print("Already running xfer")
+            return
+        }
         // Initialize the prtproxy
         //
         result = vpnx_gui_init(
@@ -73,7 +78,8 @@ class ViewController: NSTabViewController {
         if (result == 0) {
             // run its loop in our queue
             //
-            xferq.async { self.RunXfer() }
+            xfer_work_item = DispatchWorkItem { self.RunXfer() }
+            xferq.async(execute: xfer_work_item!)
         }
         else {
             print("Failed to start extender"); // TODO announce failure?
@@ -81,14 +87,13 @@ class ViewController: NSTabViewController {
     }
     
     func StopExtender() {
-        var attempts : Int = 0
-        
-        abortxfer = true
-        while (abortxfer && attempts < 1000) {
-            attempts += 1
-            // just... wait a sec
-            sleep(1)
-        }
+        print("cancelling xfer")
+        xfer_work_item!.cancel();
+    }
+    
+    func XferStopped() {
+        print("xfer stopped, restarting")
+        StartExtender();
     }
     
     func StoreSettings() {
@@ -116,15 +121,20 @@ class ViewController: NSTabViewController {
     func RunXfer() {
         var result : Int32
         
-        abortxfer = false
+        self.xferrunning = true
         
         repeat {
             result = vpnx_gui_slice()
         }
-        while (result == 0 && abortxfer == false)
+        while (result == 0 && !xfer_work_item!.isCancelled)
         
-        abortxfer = false
-    }
+        print("RunXfer ends")
+        
+        self.xferrunning = false
 
+        xfer_work_item?.notify(queue: .main) {
+            self.XferStopped()
+        }
+    }
 }
 
