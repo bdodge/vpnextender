@@ -109,7 +109,7 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr, int timeout
         uint32_t nonblock;
         #endif
 
-        vpnx_log(3, "Connection: %d\n", clientsock);
+        vpnx_log(5, "Connection: socket=%d\n", clientsock);
              
         nonblock = 1;
         if (ioctlsocket(clientsock, FIONBIO, &nonblock) < 0)
@@ -288,7 +288,7 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
 	
     // short wait for tcp read, to keep checking usb
 	//
-    int waitms = 100;
+    int waitms = 10;
     
     FD_ZERO (&rfds);
     FD_SET  (sock, &rfds);

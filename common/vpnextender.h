@@ -59,7 +59,7 @@
 /// Web browsers like to open a bunch of persistent sockets
 /// so to work well for browsers we need to support a ferw
 ///
-#define VPNX_MAX_CONNECTIONS     (8)
+#define VPNX_MAX_CONNECTIONS     (4)
 
 /// The USB data transfer packet type
 ///
