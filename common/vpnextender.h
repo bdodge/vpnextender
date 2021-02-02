@@ -54,14 +54,21 @@
 #define VPNX_USBT_CONFIG_VIDPID     7
 #define VPNX_USBT_REBOOT            8
 
+/// Max number of simultaneous logical connections
+/// (sockets in tcp world, connection number in usb world)
+/// Web browsers like to open a bunch of persistent sockets
+/// so to work well for browsers we need to support a ferw
+///
+#define VPNX_MAX_CONNECTIONS     (8)
+
 /// The USB data transfer packet type
 ///
 typedef struct /*__attribute__((packed))*/ tag_vpnx_io
 {
-    uint32_t    type;
-    uint32_t    count;
-    uint16_t    srcport;
-    uint16_t    dstport;
+    uint32_t    type;           ///< type pf packet
+    uint32_t    count;          ///< how many bytes in bytes
+    uint16_t    param;          ///< generic parameter
+    uint16_t    connection;     ///< logical connection number (both sides use same index based on server)
     uint8_t     bytes[VPNX_MAX_PACKET_BYTES];
 }
 vpnx_io_t;

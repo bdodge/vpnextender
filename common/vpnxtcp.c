@@ -69,7 +69,7 @@ int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
     return result;
 }
 
-int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
+int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr, int timeoutms)
 {
     struct sockaddr_in cli_addr;
     socklen_t clilen;
@@ -90,12 +90,8 @@ int tcp_accept_connection(SOCKET serversock, SOCKET *clientsock_ptr)
     FD_ZERO (&afds);
     FD_SET  (serversock, &afds);
     
-#ifndef VPNX_GUI
-    timeout.tv_sec  = 1;
-#else
-    timeout.tv_sec  = 0;
-#endif
-    timeout.tv_usec = 40000;
+    timeout.tv_sec  = timeoutms / 1000;
+    timeout.tv_usec = (timeoutms - ((timeoutms / 1000) * 1000)) / 1000;
     
     sv = select(serversock + 1, &afds, NULL, NULL, &timeout);
 
@@ -300,7 +296,7 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
     timeout.tv_sec  = waitms / 1000;
     timeout.tv_usec = (waitms - ((waitms / 1000) * 1000)) * 1000;
 
-    sv = select(sock + 1, NULL, &rfds, NULL, &timeout);
+    sv = select(sock + 1, &rfds, NULL, NULL, &timeout);
     if (sv < 0)
     {
         vpnx_log(0, "TCP connection broke\n");

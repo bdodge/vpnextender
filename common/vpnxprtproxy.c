@@ -1044,7 +1044,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
         }
         // add our event source to the run loop
         //
-        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopDefaultMode);
+        CFRunLoopAddSource(CFRunLoopGetMain()/*CFRunLoopGetCurrent()*/, runLoopSource, kCFRunLoopDefaultMode);
 
         kr = (*dev->usbInterface)->ReadPipeAsync(
                                                  dev->usbInterface,
