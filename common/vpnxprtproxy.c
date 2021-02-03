@@ -5,8 +5,15 @@
 #ifdef Windows
 #include "winusb.h"
 #include "winusbio.h"
-#endif
-#ifdef OSX
+#elif defined(Linux)
+  #ifdef LIBUSB01
+    #include <usb.h>    // libusb-dev must be installed!
+  #else
+    #include <libusb-1.0/libusb.h>
+  #endif
+  #define LIBUSBSYNC 1 //  use synchronous IO. I found no benefit to the async API
+#include <signal.h>
+#elif defined(OSX)
 #include <IOKit/IOKitLib.h>
 #include <IOKit/IOMessage.h>
 #include <IOKit/IOCFPlugIn.h>
@@ -29,16 +36,23 @@ typedef struct usb_desc
     bool                    rx_completed[2];    ///< rx completed state
     bool                    rx_started[2];      ///< rx started state
     int                     rx_pong;            ///< which rx buffer is being read
-
+	
 #ifdef Windows
     HANDLE                  hio_wr;
     HANDLE                  hio_rd;
     HANDLE                  hio_ev;
     OVERLAPPED              rx_overlap[2];
 #elif defined(Linux)
+  #ifdef LIBUSB01
     struct usb_dev_handle  *hio;
     int                     busn;
     int                     devn;
+  #else
+	libusb_device_handle   *hio;
+   #ifndef LIBUSBSYNC
+	struct libusb_transfer *rx_usb_xfer[2];			///< usb transfer for async i/o
+   #endif
+  #endif
     int                     inum;
 #elif defined(OSX)
     io_object_t             notification;
@@ -254,18 +268,23 @@ int find_usb_device(long vid, long pid)
 #endif
 
 #ifdef Linux
+
+#ifndef LIBUSB01
+static libusb_context *s_libusb_ctx = NULL;
+#endif
+
 int find_usb_device(long vid, long pid)
 {
     // Linux libusb
     static int isinit = 0;
+    int result = -1;
 
+#ifdef LIBUSB01
     struct usb_bus    *bus;
     struct usb_device *dev;
     
     int devn, busn;
     
-    int result = -1;
-
     if(! isinit)
     {
         usb_init();
@@ -374,6 +393,7 @@ int find_usb_device(long vid, long pid)
                                         return result;
                                     }
                                     vpnx_log(2, "Opened USB device vid=%X pid=%X\n", vid, pid);
+                                    vpnx_log(5, "  rep %d (%d max)  wep %d (%d max)\n", rep, rpz, wep, wpz);
                                     return 0;
                                 }
                             }
@@ -383,8 +403,191 @@ int find_usb_device(long vid, long pid)
             }
         }
     }
+#else /* use 1.0 version not 0.1 version */
+	struct libusb_device_descriptor devdesc;
+	struct libusb_config_descriptor *confdesc;
+	libusb_device_handle *handle;
+	libusb_device *device;
+	int usbll;
+	int config;
+	
+    if(! isinit)
+    {
+		libusb_init(&s_libusb_ctx);
+        isinit = 1;
+  	
+		usbll = vpnx_get_log_level();
+		if (usbll > 4)
+		{
+			usbll = 4;
+		}
+		libusb_set_option(s_libusb_ctx, LIBUSB_OPTION_LOG_LEVEL, usbll /*LIBUSB_LOG_LEVEL_DEBUG*/);
+
+		gusb_device = NULL;
+	}
+
+	handle = libusb_open_device_with_vid_pid(s_libusb_ctx, vid, pid);
+	if (!handle)
+	{
+		vpnx_log(0, "Can't open usb device\n");
+		return -1;
+	}
+	device = libusb_get_device(handle);
+	if (!device)
+	{
+		vpnx_log(0, "Can't get device\n");
+		libusb_close(handle);
+		return -1;
+	}
+	result = libusb_get_config_descriptor(device, config, &confdesc);
+	if (result)
+	{
+		vpnx_log(0, "Can't get config descriptor\n");
+		libusb_close(handle);
+		return -1;
+	}
+	result = libusb_get_device_descriptor(device, &devdesc);
+	if (result)
+	{
+		vpnx_log(0, "Can't get device descriptor\n");
+		libusb_close(handle);
+		return -1;
+	}
+	for (config = 0;  config < devdesc.bNumConfigurations; config++)
+	{
+		int i, a;
+		
+		result = libusb_get_config_descriptor(device, config, &confdesc);
+		if (result)
+		{
+			vpnx_log(0, "Can't get config descriptor for config %d\n", config);
+			libusb_close(handle);
+			return -1;
+		}
+		for (i = 0; i < confdesc->bNumInterfaces; i++)
+		{
+		    for (a = 0; a < confdesc->interface[i].num_altsetting; a++)
+		    {
+		        vpnx_log(3, "poll_usb: iface:%d  ifaceClass:%x\n",
+		                i, confdesc->interface[i].altsetting[a].bInterfaceClass);
+		
+		        if(confdesc->interface[i].altsetting[a].bInterfaceClass == USB_CLASS_PRINTER)
+		        {
+		            int n, rep, wep, iep;
+		            uint16_t rpz, wpz;
+		            
+		            rep = 0x81;
+		            wep = 0;
+		            iep = 0x82;
+		            
+		            vpnx_log(3, "Found iface:%d  ifaceClass:%x\n", 
+		                    i, confdesc->interface[i].altsetting[a].bInterfaceClass);
+		
+		            for(n = 0; n < confdesc->interface[i].altsetting[a].bNumEndpoints; n++)
+		            {
+		                switch(confdesc->interface[i].altsetting[a].endpoint[n].bmAttributes & LIBUSB_ENDPOINT_ADDRESS_MASK)
+		                {
+		                case LIBUSB_TRANSFER_TYPE_BULK:
+		                    switch(confdesc->interface[i].altsetting[a].endpoint[n].bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK)
+		                    {
+		                    case LIBUSB_ENDPOINT_IN:
+		                        rep = confdesc->interface[i].altsetting[a].endpoint[n].bEndpointAddress;
+		                        rpz = confdesc->interface[i].altsetting[a].endpoint[n].wMaxPacketSize;
+		                        break;
+		                    case LIBUSB_ENDPOINT_OUT:
+		                        wep = confdesc->interface[i].altsetting[a].endpoint[n].bEndpointAddress;
+		                        wpz = confdesc->interface[i].altsetting[a].endpoint[n].wMaxPacketSize;
+		                        break;
+		                    }
+		                    break;
+		                case LIBUSB_TRANSFER_TYPE_INTERRUPT:
+		                    switch(confdesc->interface[i].altsetting[a].endpoint[n].bEndpointAddress & LIBUSB_ENDPOINT_DIR_MASK)
+		                    {
+		                    case LIBUSB_ENDPOINT_IN:
+		                        iep = confdesc->interface[i].altsetting[a].endpoint[n].bEndpointAddress;
+		                        break;
+		                    }
+		                    break;
+		                default:
+		                    break;
+		                }
+		            }
+	                gusb_device = create_usb_desc();
+	                gusb_device->rep = rep;
+	                gusb_device->wep = wep;
+	                gusb_device->iep = iep;
+	                gusb_device->writePacketSize = wpz;
+	                gusb_device->readPacketSize = rpz;
+	                gusb_device->inum = confdesc->interface[i].altsetting[a].bInterfaceNumber;
+	                gusb_device->hio = handle;
+	                vpnx_log(5, "  rep %d (%d max)  wep %d (%d max)\n", rep, rpz, wep, wpz);
+	                break;
+		        }
+		    }
+		}
+		libusb_free_config_descriptor(confdesc);
+	}
+	
+	if (gusb_device)
+	{
+		vpnx_log(1, "Found USB tunnel device\n");
+	
+		result = libusb_claim_interface(handle, gusb_device->inum);
+		if(result < 0)
+		{
+			vpnx_log(0, "Can't claim USB interface [%s]\n", strerror(-result));
+			libusb_close(handle);
+			destroy_usb_desc(gusb_device);
+			gusb_device = NULL;
+			return result;
+		}
+		vpnx_log(2, "Opened USB device vid=%X pid=%X\n", vid, pid);
+	}
+#endif
     return result;
 }
+
+#ifndef LIBUSBSYNC
+void usb_read_complete(struct libusb_transfer *xfer)
+{
+    usb_desc_t *dev = (usb_desc_t *)xfer->user_data;
+    uint32_t  rc = (uint32_t)xfer->actual_length;
+
+    // determine which buffer was being read (should be same as pong!)
+    //
+    if (!dev->rx_started[dev->rx_pong])
+    {
+        vpnx_log(0, "Expected usb rx to buffer %d, but not started?\n", dev->rx_pong);
+    }
+    dev->rx_started[dev->rx_pong] = false;
+                          
+    vpnx_log(4, "usb_read_complete [%d] with %d more bytes, payload is %d\n",
+                    dev->rx_pong, rc, dev->rx_usb_packet[dev->rx_pong].count);
+
+    if (xfer->status != LIBUSB_TRANSFER_COMPLETED)
+    {
+		if (xfer->status != LIBUSB_TRANSFER_TIMED_OUT)
+		{
+	        vpnx_log(0, "Error from asynchronous bulk read %d\n", xfer->status);
+		}
+		// no data moved
+        vpnx_log(4, "Asynchronous bulk read err %d\n", xfer->status);
+        return;
+    }
+    // count this chunk towards packet
+    //
+    dev->rx_usb_count[dev->rx_pong] += rc;
+    
+    if (dev->rx_usb_count[dev->rx_pong] >= VPNX_PACKET_SIZE/*dev->rx_usb_packet[dev->rx_pong].count*/)
+    {
+        // have gotten enough to complete the packet, all done
+        //
+        vpnx_log(4, "usb packet [%d] complete\n", dev->rx_pong);
+        dev->rx_completed[dev->rx_pong] = true;
+        dev->rx_usb_count[dev->rx_pong] = 0;
+    }
+}
+#endif /* syncio */
 #endif /* Linux */
 
 #ifdef OSX
@@ -889,6 +1092,7 @@ int usb_write(void *pdev, vpnx_io_t *io)
     }
     wc = (int)written;
 #elif defined(Linux)
+	#ifdef LIBUSB01
         //vpnx_log(2, "usb gonna write %d\n", tosend - sent);
         wc = usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, tosend - sent, 5000);
         if (wc < 0)
@@ -899,6 +1103,17 @@ int usb_write(void *pdev, vpnx_io_t *io)
         //vpnx_log(2, "usb wrote %d\n", wc);
         // flush
         usb_bulk_write(dev->hio, dev->wep, (char*)psend + sent, 0, 0);
+	#else
+		int result;
+	
+		result = libusb_bulk_transfer(dev->hio, dev->wep, (char*)psend + sent, tosend - sent, &wc, 5000);
+		if (result)
+		{
+            vpnx_log(0, "usb write failed: %d\n", result);
+            return result;
+		}
+		result = wc;
+	#endif
 #elif defined(OSX)
         wc = tosend - sent;
         if ((*dev->usbInterface)->WritePipe(dev->usbInterface, dev->wep, psend + sent, wc) != kIOReturnSuccess)
@@ -948,7 +1163,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
         have = dev->rx_usb_count[dev->rx_pong];
         if (have > 0)
         {
-            remaining = VPNX_PACKET_SIZE/*dev->rx_usb_packet[dev->rx_pong].count*/ - have;
+            remaining = VPNX_PACKET_SIZE - have;
         }
         else
         {
@@ -993,12 +1208,14 @@ int usb_read(void *pdev, vpnx_io_t **io)
         dev->rx_usb_count[dev->rx_pong] = gotten;
 #endif
 #ifdef Linux
+  #ifdef LIBUSBSYNC
+	#ifdef LIBUSB01
         result = usb_bulk_read(
                                 dev->hio,
                                 dev->rep,
                                 ((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have,
                                 remaining,
-                                have ? 1500 : 50 /* shorter timeout for first buffer*/
+                                have ? 2500 : 15 /* shorter timeout for first chunk */
                                 );
         if (result == -ETIMEDOUT)
         {
@@ -1009,6 +1226,37 @@ int usb_read(void *pdev, vpnx_io_t **io)
             vpnx_log(0, "usb read failed: %d\n", result);
             return result;
         }
+	#else
+		int result;
+		
+		int rc;
+		
+		result = libusb_bulk_transfer(
+								dev->hio,
+								dev->rep,
+								((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have,
+                                remaining,
+								&rc,
+                                have ? 2500 : 15 /* shorter timeout for first chunk */
+                                );
+		if (result == LIBUSB_ERROR_TIMEOUT)
+		{
+			if (have)
+			{
+				vpnx_log(1, "usb read timedout\n");
+			}
+			else
+			{
+				result = 0;
+			}
+		}
+		if (result)
+		{
+            vpnx_log(0, "usb read failed: %d\n", result);
+            return result;
+		}
+		result = rc;
+	#endif
         vpnx_log(5, "usb read %d more\n", result);
         if (result > 0)
         {
@@ -1022,11 +1270,39 @@ int usb_read(void *pdev, vpnx_io_t **io)
                 dev->rx_completed[dev->rx_pong] = true;
                 dev->rx_usb_count[dev->rx_pong] = 0;
             }
+			else
+			{
+				vpnx_log(2, "incomplete packet [%d] %d only to make %d\n",
+						dev->rx_pong, result, dev->rx_usb_count[dev->rx_pong]);
+			}
         }
         else
         {
             dev->rx_started[dev->rx_pong] = false;
         }
+  #else // async reads
+		// libusb frees this itself 
+		dev->rx_usb_xfer[dev->rx_pong] = libusb_alloc_transfer(0);
+		
+		libusb_fill_bulk_transfer(
+								dev->rx_usb_xfer[dev->rx_pong],
+								dev->hio,
+								dev->rep,
+								((uint8_t*)&dev->rx_usb_packet[dev->rx_pong]) + have,
+                                remaining,
+								usb_read_complete,
+								dev,
+                                15000
+                                );
+								
+		result = libusb_submit_transfer(dev->rx_usb_xfer[dev->rx_pong]);
+		if (result)
+		{
+            vpnx_log(0, "usb read failed: %d\n", result);
+            return result;
+		}
+        dev->rx_started[dev->rx_pong] = true;		
+  #endif
 #endif
 #ifdef OSX
         CFRunLoopSourceRef  runLoopSource;
@@ -1127,6 +1403,18 @@ int vpnx_run_loop()
     do
     {
         result = vpnx_run_loop_slice();
+#if defined(Linux) && !defined(LIBUSBYSNC)
+	// drive libusb's internal state and it will callback our read complete callback when ready
+	{
+	struct timeval timeout;
+	int completed = 0;
+	
+	// there is another short rest in tcp read select, but this short one helps a bit in cpu
+	timeout.tv_sec = 0;
+	timeout.tv_usec = 2000;
+	libusb_handle_events_timeout_completed(s_libusb_ctx, &timeout, &completed);
+	}
+#endif
     }
     while (!result);
 #else

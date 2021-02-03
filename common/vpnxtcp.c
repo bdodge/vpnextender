@@ -328,7 +328,7 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
     }
     if (rc == 0)
     {
-        vpnx_log(0, "TCP connection closed on read\n");
+        vpnx_log(1, "TCP connection closed on read\n");
         return -1;
     }
 	s_io.type = VPNX_USBT_DATA;

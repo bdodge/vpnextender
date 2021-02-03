@@ -14,6 +14,8 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <signal.h>
+#include <time.h>
 
 #define VPNX_CLIENT (0) ///< connect to remote host/port from VPN from LAN via USB
 #define VPNX_SERVER (1) ///< accept local connections and forward via USB to LAN
@@ -59,7 +61,7 @@
 /// Web browsers like to open a bunch of persistent sockets
 /// so to work well for browsers we need to support a ferw
 ///
-#define VPNX_MAX_CONNECTIONS     (4)
+#define VPNX_MAX_CONNECTIONS     (1)
 
 /// The USB data transfer packet type
 ///
@@ -117,6 +119,7 @@ void vpnx_mem_logger(const char *msg);
 void vpnx_get_log_string(char *msg, int nmsg);
 void vpnx_set_log_function(void (*logging_func)(const char *));
 void vpnx_set_log_level(uint32_t newlevel);
+int  vpnx_get_log_level(void);
 void vpnx_reboot_extender(void);
 int  vpnx_set_vidpid(uint16_t vid, uint16_t pid);
 int  vpnx_set_network(const char *netname, const char *netpass);

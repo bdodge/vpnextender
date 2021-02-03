@@ -8,7 +8,6 @@
     #include <rpc.h>
 #elif defined(Linux)
     #include <errno.h>
-    #include <usb.h>    // libusb-dev must be installed!
     #include <unistd.h>
     #include <netdb.h>
     #include <sys/un.h>
