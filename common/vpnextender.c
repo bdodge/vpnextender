@@ -17,6 +17,13 @@ static SOCKET s_server_socket;
 ///
 static SOCKET s_tcp_sockets[VPNX_MAX_CONNECTIONS];
 
+/// timer indicating we closed a socket, and waiting for the other side
+/// to ACK that by saying it closed its side. This is used to disable
+/// use of the connection slot for a new connection to avoid getting out 
+/// of sync
+///
+static int s_tcp_closeacks[VPNX_MAX_CONNECTIONS];
+
 /// remote host to connect to
 ///
 char s_remote_host[1024];
@@ -372,7 +379,11 @@ int vpnx_run_loop_slice()
         {
             if (s_tcp_sockets[i] == INVALID_SOCKET)
             {
-                break;
+                if (s_tcp_closeacks[i]-- <= 0)
+                {
+                    // dont re-use connection until other side closes its 
+                    break;
+                }
             }
         }
         // if there is an open slot, allow a connection
@@ -519,12 +530,26 @@ int vpnx_run_loop_slice()
             }
             break;
         case VPNX_USBT_CLOSE:
-            vpnx_log(1, "USB host informs us their TCP connection is closed\n");
+            vpnx_log(1, "USB host informs us their TCP connection[%d] is closed\n", io_from_usb->connection);
             if (s_tcp_sockets[io_from_usb->connection] != INVALID_SOCKET)
             {
-                // close ours then too
+                // they were first, so close ours then too
+                vpnx_log(2, "Disconnected [%d]\n", io_from_usb->connection);
                 closesocket(s_tcp_sockets[io_from_usb->connection]);
                 s_tcp_sockets[io_from_usb->connection] = INVALID_SOCKET;
+                
+                // and tell the usb side we're closed too, at least as an ACK                
+                io_to_usb = io_from_usb;
+                io_to_usb->param = 6;
+                io_to_usb->type = VPNX_USBT_CLOSE;
+                io_to_usb->count = 0;
+            }
+            else
+            {
+                // we closed first, or we both closed, so this is an ack, so handle it
+                //
+                vpnx_log(3, "USB host acked close for connection[%d]\n", io_from_usb->connection);
+                s_tcp_closeacks[io_from_usb->connection] = 0;
             }
             break;
 #if TUNNEL_BUILD
@@ -573,12 +598,17 @@ int vpnx_run_loop_slice()
             result = tcp_write(s_tcp_sockets[io_to_tcp->connection], io_to_tcp);
             if (result != 0)
             {
-                vpnx_log(0, "TCP write failed, closing connection\n");
+                vpnx_log(0, "TCP write failed, closing connection[%d]\n", io_to_tcp->connection);
                 // assume TCP connection is closed, so tell USB side
                 closesocket(s_tcp_sockets[io_to_tcp->connection]);
                 s_tcp_sockets[io_to_tcp->connection] = INVALID_SOCKET;
+                // wait for usb side to close its tcp connection on same channel (for a bit)
+                s_tcp_closeacks[io_to_tcp->connection] = 10000;
+                
                 io_to_usb = &io_packet;
                 io_to_usb->count = 0;
+                io_to_usb->connection = io_to_tcp->connection;
+                io_to_usb->param = 2;
                 io_to_usb->type = VPNX_USBT_CLOSE;
                 result = 0;
             }
@@ -590,38 +620,59 @@ int vpnx_run_loop_slice()
     }
     if (!io_to_usb)
     {
+        static int last_connection = 0;
+        
         // read tcp data packets, but only if we aren't already wanting to write usb data already
         //
-        for (i = 0; i < VPNX_MAX_CONNECTIONS; i++)
+        // serve slots round-robin style
+        //
+        i = last_connection;
+        do
         {
+            i++;
+            if (i >= VPNX_MAX_CONNECTIONS)
+            {
+                i = 0;
+            }
             if (s_tcp_sockets[i] != INVALID_SOCKET)
             {
-                result = tcp_read(s_tcp_sockets[i], &io_from_tcp);
-                if (result)
+                break;
+            }
+        }
+        while (i != last_connection);
+        
+        if (s_tcp_sockets[i] != INVALID_SOCKET)
+        {
+            last_connection = i;
+            
+            result = tcp_read(s_tcp_sockets[i], &io_from_tcp);
+            if (result)
+            {
+                vpnx_log(0, "TCP read failed, closing connection[%d]\n", i);
+                // assume TCP connection is closed, so tell USB side
+                closesocket(s_tcp_sockets[i]);
+                s_tcp_sockets[i] = INVALID_SOCKET;
+                // wait for usb side to close its tcp connection on same channel (for a bit)
+                s_tcp_closeacks[i] = 10000;
+                
+                io_to_usb = &io_packet;
+                io_to_usb->param = 3;
+                io_to_usb->connection = i;
+                io_to_usb->count = 0;
+                io_to_usb->type = VPNX_USBT_CLOSE;
+                result = 0;
+            }
+            else
+            {
+                // if any data, write it to USB port
+                //
+                if (io_from_tcp && io_from_tcp->count)
                 {
-                    vpnx_log(0, "TCP read failed, closing connection\n");
-                    // assume TCP connection is closed, so tell USB side
-                    closesocket(s_tcp_sockets[i]);
-                    s_tcp_sockets[i] = INVALID_SOCKET;
-                    io_to_usb = &io_packet;
-                    io_to_usb->param = 1;
-                    io_to_usb->connection = i;
-                    io_to_usb->count = 0;
-                    io_to_usb->type = VPNX_USBT_CLOSE;
-                    result = 0;
-                }
-                else
-                {
-                    // if any data, write it to USB port
-                    //
-                    if (io_from_tcp && io_from_tcp->count)
-                    {
-                        io_from_tcp->param = 1;
-                        io_from_tcp->connection = i;
-                        io_to_usb = io_from_tcp;
-                        io_to_usb->type = VPNX_USBT_DATA;
-                        vpnx_dump_packet("TCP Rx", io_from_tcp, 3);
-                    }
+                    io_from_tcp->param = 1;
+                    io_from_tcp->connection = i;
+                    io_to_usb = io_from_tcp;
+                    io_to_usb->type = VPNX_USBT_DATA;
+                    vpnx_dump_packet("TCP Rx", io_from_tcp, 3);
                 }
             }
         }
@@ -643,6 +694,7 @@ int vpnx_run_loop_slice()
             vpnx_log(0, "USB packet write error\n");
             return result;
         }
+        io_to_usb = NULL;
     }
     return result;
 }
@@ -672,6 +724,7 @@ int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint
         for (i = 0; i < VPNX_MAX_CONNECTIONS; i++)
         {
             s_tcp_sockets[i] = INVALID_SOCKET;
+            s_tcp_closeacks[i] = 0;
         }        
         wasInited = true;
     }

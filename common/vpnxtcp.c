@@ -58,7 +58,7 @@ int tcp_listen_on_port(uint16_t port, SOCKET *socket_ptr)
         closesocket(sock);
         return result;
     }
-    result = listen(sock, 2);
+    result = listen(sock, VPNX_MAX_CONNECTIONS);
     if (result < 0)
     {
         closesocket(sock);
@@ -150,10 +150,12 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
     int hostlen;
     int i;
 
+	*socket_ptr = INVALID_SOCKET;
+	
     sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0)
     {
-        vpnx_log(0, "Can't create server socket\n");
+        vpnx_log(0, "Can't create socket\n");
         return -1;
     }
 	#if 1
