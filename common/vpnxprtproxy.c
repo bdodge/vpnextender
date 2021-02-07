@@ -417,9 +417,14 @@ int find_usb_device(long vid, long pid)
         isinit = 1;
   	
 		usbll = vpnx_get_log_level();
-		if (usbll > 4)
+		usbll -= 3;
+		if (usbll > 5)
 		{
 			usbll = 4;
+		}
+		else if (usbll < 0)
+		{
+			usbll = 0;
 		}
 		libusb_set_option(s_libusb_ctx, LIBUSB_OPTION_LOG_LEVEL, usbll /*LIBUSB_LOG_LEVEL_DEBUG*/);
 
@@ -1177,7 +1182,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
         remaining /= dev->readPacketSize;
         remaining *= dev->readPacketSize;
         */
-        vpnx_log(5, "usb read %sstarting async read on [%d] for %d\n", have ? "re-" : "", dev->rx_pong, remaining);
+        vpnx_log(6, "usb read %sstarting async read on [%d] for %d\n", have ? "re-" : "", dev->rx_pong, remaining);
         
         dev->rx_started[dev->rx_pong] = true;
 #ifdef Windows
@@ -1204,7 +1209,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
                 return -1;
             }
         }
-        vpnx_log(2, "usb read for [%d], got %u initialily\n", dev->rx_pong, gotten);
+        vpnx_log(4, "usb read for [%d], got %u initialily\n", dev->rx_pong, gotten);
         dev->rx_usb_count[dev->rx_pong] = gotten;
 #endif
 #ifdef Linux
@@ -1257,7 +1262,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
 		}
 		result = rc;
 	#endif
-        vpnx_log(5, "usb read %d more\n", result);
+		vpnx_log(result == 0 ? 6 : 5, "usb read %d more\n", result);
         if (result > 0)
         {
             dev->rx_usb_count[dev->rx_pong] += result;
@@ -1490,32 +1495,44 @@ static int useage(const char *progname)
 int main(int argc, const char *argv[])
 {
     int         mode;
-    char        remote_host[256];
-    uint16_t    remote_port;
-    uint16_t    local_port;
+    char        remote_hosts[VPNX_MAX_PORTS][VPNX_MAX_HOST];
+    uint16_t    remote_ports[VPNX_MAX_PORTS];
+    uint16_t    local_ports[VPNX_MAX_PORTS];
     bool        secure;
     int         loglevel;
     const char *progname;
     int         argdex;
     const char *arg;
+	char       *nextnum;
     int         result;
-    
-    unsigned       usbVendor = kVendorID;
-    unsigned       usbProduct = kProductID;
+    int			rp_conns;
+	int			lp_conns;
+	int			host_conns;
+	
+    unsigned    usbVendor = kVendorID;
+    unsigned    usbProduct = kProductID;
 #ifndef Windows
     sig_t       oldHandler;
 #endif
+	
     progname = *argv++;
     argc--;
     
     loglevel = 0;
-    remote_host[0] = '\0';
-    remote_port = 22;
-    local_port = 2222;
     secure = false;
     mode = VPNX_CLIENT;
     result = 0;
-      
+
+	for (rp_conns = 0; rp_conns < VPNX_MAX_PORTS; rp_conns++)
+	{
+	    remote_hosts[rp_conns][0] = '\0';
+	    remote_ports[rp_conns] = 0;
+	    local_ports[rp_conns] = 0;
+	}	
+	rp_conns = 0;
+	lp_conns = 0;
+	host_conns = 0;
+	
     vpnx_set_log_level(loglevel);
     
     while (argc > 0 && ! result)
@@ -1561,9 +1578,14 @@ int main(int argc, const char *argv[])
                     }
                     break;
                 case 'a':
+					if (lp_conns >= VPNX_MAX_PORTS)
+					{
+						vpnx_log(0, "Too many (%d) local ports specified\n", lp_conns + 1);
+						lp_conns--;
+					}
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
-                        local_port = (uint16_t)strtoul(arg + argdex, NULL, 0);
+                        local_ports[lp_conns++] = (uint16_t)strtoul(arg + argdex, &nextnum, 0);
                         while (arg[argdex] != '\0')
                         {
                             argdex++;
@@ -1571,7 +1593,7 @@ int main(int argc, const char *argv[])
                     }
                     else if (argc > 0)
                     {
-                        local_port = (uint16_t)strtoul(*argv, NULL, 0);
+                        local_ports[lp_conns++] = (uint16_t)strtoul(*argv, &nextnum, 0);
                         argc--;
                         argv++;
                     }
@@ -1581,9 +1603,14 @@ int main(int argc, const char *argv[])
                     }
                     break;
                 case 'r':
+					if (rp_conns >= VPNX_MAX_PORTS)
+					{
+						vpnx_log(0, "Too many (%d) remote ports specified\n", rp_conns + 1);
+						lp_conns--;
+					}
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
-                        remote_port = (uint16_t)strtoul(arg + argdex, NULL, 0);
+                        remote_ports[rp_conns++] = (uint16_t)strtoul(arg + argdex, &nextnum, 0);
                         while (arg[argdex] != '\0')
                         {
                             argdex++;
@@ -1591,7 +1618,7 @@ int main(int argc, const char *argv[])
                     }
                     else if (argc > 0)
                     {
-                        remote_port = (uint16_t)strtoul(*argv, NULL, 0);
+                        remote_ports[rp_conns++] = (uint16_t)strtoul(*argv, &nextnum, 0);
                         argc--;
                         argv++;
                     }
@@ -1603,7 +1630,7 @@ int main(int argc, const char *argv[])
                 case 'v':
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
-                        usbVendor = (uint16_t)strtoul(arg + argdex, NULL, 0);
+                        usbVendor = (uint16_t)strtoul(arg + argdex, &nextnum, 0);
                         while (arg[argdex] != '\0')
                         {
                             argdex++;
@@ -1611,7 +1638,7 @@ int main(int argc, const char *argv[])
                     }
                     else if (argc > 0)
                     {
-                        usbVendor = (uint16_t)strtoul(*argv, NULL, 0);
+                        usbVendor = (uint16_t)strtoul(*argv, &nextnum, 0);
                         argc--;
                         argv++;
                     }
@@ -1623,7 +1650,7 @@ int main(int argc, const char *argv[])
                 case 'l':
                     if (arg[argdex] >= '0' && arg[argdex] <= '9')
                     {
-                        loglevel = (int)strtoul(arg + argdex, NULL, 0);
+                        loglevel = (int)strtoul(arg + argdex, &nextnum, 0);
                         while (arg[argdex] != '\0')
                         {
                             argdex++;
@@ -1631,7 +1658,7 @@ int main(int argc, const char *argv[])
                     }
                     else if (argc > 0)
                     {
-                        loglevel = (int)strtoul(*argv, NULL, 0);
+                        loglevel = (int)strtoul(*argv, &nextnum, 0);
                         argc--;
                         argv++;
                     }
@@ -1650,8 +1677,13 @@ int main(int argc, const char *argv[])
         }
         else
         {
-            strncpy(remote_host, arg, sizeof(remote_host) - 1);
-            remote_host[sizeof(remote_host) - 1] = '\0';
+			if (host_conns >= VPNX_MAX_PORTS)
+			{
+				vpnx_log(0, "Too many (%d) hosts specified\n", host_conns + 1);
+				host_conns--;
+			}
+            strncpy(&remote_hosts[host_conns][0], arg, VPNX_MAX_HOST - 1);
+            remote_hosts[host_conns++][VPNX_MAX_HOST - 1] = '\0';
         }
     }
 
@@ -1661,11 +1693,36 @@ int main(int argc, const char *argv[])
     //
     if (mode == VPNX_CLIENT)
     {
-        ;
+        if (lp_conns == 0)
+		{
+			// default local connection port, if not specied
+			//
+			local_ports[0] = 2222;
+			remote_ports[0] = 22;
+			lp_conns++;
+		}
     }
     else
     {
-        ;
+        if (lp_conns == 0)
+		{
+			// default local connection port, if not specied
+			//
+			local_ports[0] = 2222;
+			lp_conns = 1;
+		}
+        if (rp_conns == 0)
+		{
+			// default remotes connection port, if not specied
+			//
+			remote_ports[0] = 22;
+			rp_conns = 1;
+		}
+        if (lp_conns != rp_conns)
+		{
+			vpnx_log(0, "Need to specify same number of local and remote ports\n");
+			return -1;
+		}
     }
 
 #ifndef Windows
@@ -1699,7 +1756,25 @@ int main(int argc, const char *argv[])
             }
             else
             {
-                vpnx_run_loop_init(mode, (void*)gusb_device, remote_host, remote_port, local_port);
+				const char *remotes[VPNX_MAX_PORTS];
+				const char *last_host = NULL;
+				int i;
+				
+				// assume unspecified remote hosts should use last specified remote hosts
+				//
+				for (i = 0; i < VPNX_MAX_PORTS; i++)
+				{
+					if (i < host_conns && remote_hosts[i][0])
+					{
+						remotes[i] = &remote_hosts[i][0];
+						last_host = remotes[i];
+					}
+					else
+					{
+						remotes[i] = last_host;
+					}
+				}				
+				vpnx_run_loop_init(mode, (void*)gusb_device, remotes, remote_ports, local_ports);
             }
         }
     }

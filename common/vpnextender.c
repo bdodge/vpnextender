@@ -5,45 +5,66 @@
 #include "tunnelsettings.h"
 #endif
 
+#define VPNX_DEFAULT_REMOTE_PORT    (2222)
+#define VPNX_DEFAULT_REMOTE_HOST    "192.168.1.100"
+
 /// USB device (opaque handle)
 ///
 static void *s_usb_device = NULL;
 
-/// TCP server socket
+/// state of connections on a single port
 ///
-static SOCKET s_server_socket;
+typedef struct tag_logi_conn
+{
+    /// TCP server socket
+    ///
+    SOCKET server_socket;
 
-/// THE TCP connection socket
+    /// THE TCP connection sockets
+    ///
+    SOCKET tcp_sockets[VPNX_MAX_CONNECTIONS];
+
+    /// timer indicating we closed a socket, and waiting for the other side
+    /// to ACK that by saying it closed its side. This is used to disable
+    /// use of the connection slot for a new connection to avoid getting out 
+    /// of sync
+    ///
+    #define VPNX_CLOSE_ACK_TIMEOUT (5) /* seconds */
+    time_t tcp_closeacks[VPNX_MAX_CONNECTIONS];
+
+    /// sequence number for close-acks. we expect the next ack to have
+    /// the same sequence we sent the close msg for, and if we get
+    /// one earlier we ignore it
+    //
+    #define VPNX_ACK_FLAG 0x8000
+    #define VPNX_MAX_ACK 63
+    uint16_t ackseq;
+
+    /// remote host to connect to
+    ///
+    char remote_host[1024];
+
+    /// remote port to connect to
+    ///
+    uint16_t remote_port;
+
+    /// local port to listen on
+    ///
+    uint16_t local_port;
+    
+    /// last socket slot used, for round-robin
+    ///
+    int last_slot;
+}
+connection_t;
+
+/// array of connection data
 ///
-static SOCKET s_tcp_sockets[VPNX_MAX_CONNECTIONS];
+static connection_t s_cons[VPNX_MAX_PORTS];
 
-/// timer indicating we closed a socket, and waiting for the other side
-/// to ACK that by saying it closed its side. This is used to disable
-/// use of the connection slot for a new connection to avoid getting out 
-/// of sync
+/// last connection serviced, for round robin
 ///
-#define VPNX_CLOSE_ACK_TIMEOUT (5) /* seconds */
-static time_t s_tcp_closeacks[VPNX_MAX_CONNECTIONS];
-
-/// sequence number for close-acks. we expect the next ack to have
-/// the same sequence we sent the close msg for, and if we get
-/// one earlier we ignore it
-//
-#define VPNX_ACK_FLAG 0x8000
-#define VPNX_MAX_ACK 63
-static uint16_t s_ackseq;
-
-/// remote host to connect to
-///
-char s_remote_host[1024];
-
-/// remote port to connect to
-///
-uint16_t s_remote_port;
-
-/// local port to listen on
-///
-uint16_t s_local_port;
+static int s_last_conn;
 
 /// mode: client or server
 ///
@@ -176,9 +197,40 @@ int vpnx_get_log_level()
     return s_log_level;
 }
 
+static uint16_t vpnx_pack_connslot(int c, int slot)
+{
+    return ((uint16_t)c << 8 | (uint16_t)slot);
+}
+
+static int vpnx_extract_connslot(uint16_t connection, int *c, int *slot)
+{
+    if (!c || !slot)
+    {
+        return -1;
+    }
+    *c = (int)(connection >> 8);
+    *slot = (int)(connection & 0xFF);
+    
+    if (*c < 0 || *c >= VPNX_MAX_PORTS)
+    {
+        vpnx_log(0, "Bad connection number %d\n", *c);
+        return -1;
+    }
+    
+    if (*slot < 0 || *slot >= VPNX_MAX_CONNECTIONS)
+    {
+        vpnx_log(0, "Bad slot number %d\n", *slot);
+        return -1;
+    }
+    return 0;   
+}
+
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
 {
-    int i, j;
+    int c;
+    int slot;
+    int i;
+    int j;
     char pkt_text[18];
     const char *typestr;
     uint8_t data;
@@ -216,8 +268,9 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
         return;
         break;
     }
-    vpnx_log(level, "%s pkt %4d bytes, type=%s param=%u connection[%d]\n",
-            because, io ? io->count : 0, typestr, io->param, io->connection);
+    vpnx_extract_connslot(io->connection, &c, &slot);
+    vpnx_log(level, "%s pkt %4d bytes, type=%s param=%u connection[%d][%d]\n",
+            because, io ? io->count : 0, typestr, io->param, c, slot);
 
     if (!io->count)
     {
@@ -232,7 +285,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
         
     level++;
 
-    for (i = j = 0; i < (int)io->count; i++)
+    for (i = j = 0; i < VPNX_HEADER_SIZE + (int)io->count; i++)
     {
         data = ((uint8_t*)io)[i]; //io->bytes[i];
 
@@ -349,16 +402,15 @@ void vpnx_reboot_extender()
 int vpnx_run_loop_slice()
 {
     static vpnx_io_t   io_packet;
-    
-    char remote_host[1024];
-    uint16_t remote_port;
-    
+
     vpnx_io_t   *io_from_usb;
     vpnx_io_t   *io_from_tcp;
     vpnx_io_t   *io_to_usb;
     vpnx_io_t   *io_to_tcp;
     int result;
-    int i;
+    
+    int c;
+    int slot;
     
     // run loop, just transfer data between usb and tcp connection
     //
@@ -389,68 +441,99 @@ int vpnx_run_loop_slice()
     
     if (s_mode == VPNX_SERVER)
     {
-        for (i = 0; i < VPNX_MAX_CONNECTIONS; i++)
+        int numactive;
+        int j;
+        
+        for (c = 0, numactive = 0; c < VPNX_MAX_PORTS; c++)
         {
-            if (s_tcp_sockets[i] == INVALID_SOCKET)
+            for (slot = 0; slot < VPNX_MAX_CONNECTIONS; slot++)
             {
-                if (s_tcp_closeacks[i] != 0)
+                if (s_cons[c].tcp_sockets[slot] != INVALID_SOCKET)
                 {
-                    time_t now;
-                    
-                    time(&now);
-                    
-                    if (now > s_tcp_closeacks[i])
-                    {                    
-                        // dont re-use connection until other side closes its 
-                        vpnx_log(1, "Connection close not ACKed, timed out aging\n");
-                        s_tcp_closeacks[i] = 0;
-                        break;
-                    }
-                }
-                else
-                {
-                    // ready to connect
-                    break;
+                    numactive++;
                 }
             }
         }
-        // if there is an open slot, allow a connection
+        // round-robin access of server sockets
         //
-        if (i < VPNX_MAX_CONNECTIONS)
+        for (j = 0, c = s_last_conn; j < VPNX_MAX_PORTS; j++)
         {
-            // adjust accept timeout based on if this is the first connection
+            for (slot = 0; slot < VPNX_MAX_CONNECTIONS; slot++)
+            {
+                if (s_cons[c].tcp_sockets[slot] == INVALID_SOCKET)
+                {
+                    if (s_cons[c].tcp_closeacks[slot] != 0)
+                    {
+                        time_t now;
+                        
+                        time(&now);
+                        
+                        if (now > s_cons[c].tcp_closeacks[slot])
+                        {                    
+                            // dont re-use connection until other side closes its 
+                            vpnx_log(2, "Connection close not ACKed, timed out aging\n");
+                            s_cons[c].tcp_closeacks[slot] = 0;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        // ready to connect on [c][slot]
+                        break;
+                    }
+                }
+            }
+        }
+        // next time, accept on next port range first, skipping any inactive servers
+        //
+        j = 0;
+        do
+        {
+            s_last_conn++;
+            if (s_last_conn >= VPNX_MAX_PORTS)
+            {
+                s_last_conn = 0;
+            }
+        }
+        while ((s_cons[s_last_conn].server_socket == INVALID_SOCKET) && (++j < VPNX_MAX_PORTS));
+        
+        // if there is an open slot, allow a connection to happen
+        //
+        if (slot < VPNX_MAX_CONNECTIONS)
+        {
+            // adjust accept timeout based on if this is the first/only connection
             //
-            result = tcp_accept_connection(s_server_socket, &s_tcp_sockets[i], (i == 0) ? 1000 : 0);
+            result = tcp_accept_connection(s_cons[c].server_socket, &s_cons[c].tcp_sockets[slot], (numactive == 0) ? 1000 : 0);
             if (result)
             {
                 return result;
             }
-            if (s_tcp_sockets[i] != INVALID_SOCKET)
+            if (s_cons[c].tcp_sockets[slot] != INVALID_SOCKET)
             {
                 // got us a live one. tell the USB side to connect
                 //
                 io_packet.type = VPNX_USBT_CONNECT;
                 io_packet.count = 0;
                 io_packet.param = 1;
-                io_packet.connection = i;
+                io_packet.connection = vpnx_pack_connslot(c, slot);
                 
                 // if we have a remote_host/port configured, add to packet
                 //
-                if (s_remote_host[0])
+                if (s_cons[c].remote_host[0])
                 {
                     io_packet.count = snprintf((char*)io_packet.bytes, VPNX_MAX_PACKET_BYTES, "%s:%u",
-                            s_remote_host, s_remote_port);
+                            s_cons[c].remote_host, s_cons[c].remote_port);
                     if (io_packet.count < 0)
                     {
-                        closesocket(s_tcp_sockets[i]);
-                        s_tcp_sockets[i] = INVALID_SOCKET;
+                        closesocket(s_cons[c].tcp_sockets[slot]);
+                        s_cons[c].tcp_sockets[slot] = INVALID_SOCKET;
                         vpnx_log(0, "hostname too long for packet\n");
                         return -1;
                     }
                 }
-                vpnx_log(1, "Local TCP Connection [%d]\n", i);
+                vpnx_log(1, "Local TCP Connection [%d][%d]\n", c, slot);
                 vpnx_dump_packet("USB Tx[connect]", &io_packet, 3);
-                
+
                 result = usb_write(s_usb_device, &io_packet);
                 if (result)
                 {
@@ -459,7 +542,7 @@ int vpnx_run_loop_slice()
                 }
             }
         }
-    }    
+    }
     // read usb data/control packets
     //
     result = usb_read(s_usb_device, &io_from_usb);
@@ -489,100 +572,109 @@ int vpnx_run_loop_slice()
         case VPNX_USBT_SYNC:
             break;
         case VPNX_USBT_CONNECT:
-            remote_port = s_remote_port;
-            strncpy(remote_host, s_remote_host, sizeof(remote_host) - 1);
-            remote_host[sizeof(remote_host) - 1] = '\0';
-            if (io_from_usb->count > 0)
-            {
-                char *pcolon;;
-                
-                // extract remote host spec from message if available
-                strncpy(remote_host, (const char*)io_from_usb->bytes, sizeof(remote_host) - 1);
-                if (io_from_usb->count < sizeof(remote_host))
-                {
-                    remote_host[io_from_usb->count] = '\0';
-                }
-                else
-                {
-                    remote_host[sizeof(remote_host) - 1] = '\0';
-                }
-                pcolon = strchr(remote_host, ':');
-                if (pcolon) 
-                {
-                    *pcolon++ = '\0';
-                    remote_port = strtoul(pcolon, NULL, 10);
-                }
-                vpnx_log(3, "USB host specified remote host: %s on %s port %u\n",
-                         remote_host, (pcolon) ? "specified" : "default", remote_port);
-            }
-            vpnx_log(1, "USB host connects, Attempt to connect to TCP %s:%u\n", remote_host, remote_port);
-            
-            // make sure the connection slot is open..we keep in sync with other side
-            // and there should be no reason they cant map 1:1 or else there is trouble
+            // extract connection/slot from packet. we map tcp connections 1:1 on both sides for sanity;
             //
-            if (io_from_usb->connection >= VPNX_MAX_CONNECTIONS)
+            result = vpnx_extract_connslot(io_from_usb->connection, &c, &slot);
+            if (result) 
             {
-                vpnx_log(0, "Bad connection number, dropping request\n");
-                result = -1;
+                vpnx_log(0, "Bad connection number, dropping connect request\n");
             }
-            else if (s_tcp_sockets[io_from_usb->connection] == INVALID_SOCKET)
+            if (! result)
             {
-                result = tcp_connect(remote_host, remote_port, &s_tcp_sockets[io_from_usb->connection]);
-                if (s_tcp_sockets[io_from_usb->connection] == INVALID_SOCKET)
+                if (s_cons[c].tcp_sockets[slot] != INVALID_SOCKET)
                 {
-                    // just in case, shouldn't ever happen
+                    vpnx_log(0, "Connection[%d][%d] not available?\n", c, slot);
                     result = -1;
                 }
             }
-            else
+            if (! result)
             {
-                vpnx_log(0, "Connection[%d] not available?\n", io_from_usb->connection);
-                result = -1;
+                s_cons[c].remote_port = VPNX_DEFAULT_REMOTE_PORT;
+                strncpy(s_cons[c].remote_host, VPNX_DEFAULT_REMOTE_HOST, sizeof(s_cons[c].remote_host) - 1);
+                s_cons[c].remote_host[sizeof(s_cons[c].remote_host) - 1] = '\0';
+
+                if (io_from_usb->count > 0)
+                {
+                    char *pcolon;;
+                    
+                    // extract remote host spec from message if available
+                    strncpy(s_cons[c].remote_host, (const char*)io_from_usb->bytes, sizeof(s_cons[c].remote_host) - 1);
+                    if (io_from_usb->count < sizeof(s_cons[c].remote_host))
+                    {
+                        s_cons[c].remote_host[io_from_usb->count] = '\0';
+                    }
+                    else
+                    {
+                        s_cons[c].remote_host[sizeof(s_cons[c].remote_host) - 1] = '\0';
+                    }
+                    pcolon = strchr(s_cons[c].remote_host, ':');
+                    if (pcolon) 
+                    {
+                        *pcolon++ = '\0';
+                        s_cons[c].remote_port = strtoul(pcolon, NULL, 10);
+                    }
+                    vpnx_log(3, "USB host specified remote host: %s on %s port %u\n",
+                             s_cons[c].remote_host, (pcolon) ? "specified" : "default", s_cons[c].remote_port);
+                }
+                vpnx_log(1, "USB host connects, Attempt to connect to TCP %s:%u\n", s_cons[c].remote_host, s_cons[c].remote_port);
+                
+                result = tcp_connect(s_cons[c].remote_host, s_cons[c].remote_port, &s_cons[c].tcp_sockets[slot]);
+                if (s_cons[c].tcp_sockets[slot] == INVALID_SOCKET)
+                {
+                    // just in case, shouldn't ever happen if result non zero
+                    result = -1;
+                }
             }
             if (result)
             {
                 io_to_usb = io_from_usb;
 
                 vpnx_log(0, "Can't connect to remote host\n");
-                s_tcp_sockets[io_from_usb->connection] = INVALID_SOCKET;
+                s_cons[c].tcp_sockets[slot] = INVALID_SOCKET;
                 
                 // tell USB host the connect failed so it can retry if it wants
                 //
-                s_ackseq++;
-                if (s_ackseq > VPNX_MAX_ACK)
+                s_cons[c].ackseq++;
+                if (s_cons[c].ackseq > VPNX_MAX_ACK)
                 {
-                    s_ackseq = 0;
+                    s_cons[c].ackseq = 0;
                 }
                 io_to_usb->type = VPNX_USBT_CLOSE;
-                io_to_usb->param = s_ackseq;
+                io_to_usb->param = s_cons[c].ackseq;
                 io_to_usb->count = 0;
             }
             else
             {
-                vpnx_log(2, "Connected [%d]\n", io_from_usb->connection);
+                vpnx_log(2, "Connected [%d][%d]\n", c, slot);
                 io_to_usb = NULL;
             }
             break;
         case VPNX_USBT_CLOSE:
-            vpnx_log(1, "USB host informs us their TCP connection[%d] seq[%04X] is closed\n",
-                    io_from_usb->connection, io_from_usb->param);
+            result = vpnx_extract_connslot(io_from_usb->connection, &c, &slot);
+            if (result) 
+            {
+                vpnx_log(0, "Bad connection number, dropping close request\n");
+                break;
+            }
+            vpnx_log(1, "USB host informs us their TCP connection[%d][%d] seq[%04X] is closed\n",
+                    c, slot, io_from_usb->param);
                 
-            if (s_tcp_sockets[io_from_usb->connection] != INVALID_SOCKET)
+            if (s_cons[c].tcp_sockets[slot] != INVALID_SOCKET)
             {
                 if (io_from_usb->param & VPNX_ACK_FLAG)
                 {                    
                     // this is an unexpeced ack, perhaps from a timed out connection, so ignore it
                     //
-                    vpnx_log(3, "USB host acked close of open connection[%d]? ignoring\n", io_from_usb->connection);
+                    vpnx_log(3, "USB host acked close of open connection[%d][%d]? ignoring\n", c, slot);
                 }
                 else
                 {
                     // they are closed first, so close ours too and ack with same ack as in packet (param)
                     //
-                    vpnx_log(2, "Disconnected [%d]\n", io_from_usb->connection);
-                    closesocket(s_tcp_sockets[io_from_usb->connection]);
-                    s_tcp_sockets[io_from_usb->connection] = INVALID_SOCKET;
-                    s_tcp_closeacks[io_from_usb->connection] = 0;
+                    vpnx_log(2, "Disconnected [%d][%d]\n", c, slot);
+                    closesocket(s_cons[c].tcp_sockets[slot]);
+                    s_cons[c].tcp_sockets[slot] = INVALID_SOCKET;
+                    s_cons[c].tcp_closeacks[slot] = 0;
                     
                     // and tell the usb side we're closed too
                     io_to_usb = io_from_usb;
@@ -602,23 +694,23 @@ int vpnx_run_loop_slice()
                     ack = io_from_usb->param & ~VPNX_ACK_FLAG;
                     
                     // expected ack is the one we sent in clos message
-                    expack = s_ackseq;
+                    expack = s_cons[c].ackseq;
                     
                     if (ack != expack)
                     {
-                        vpnx_log(3, "USB host ACKs seq %d closed connection[%d] out of seqeunce, expected %d\n",
-                                       ack, io_from_usb->connection, expack);
+                        vpnx_log(3, "USB host ACKs seq %d closed connection[%d][%d] out of seqeunce, expected %d\n",
+                                       ack, c, slot, expack);
                     }
                     else
                     {
-                        vpnx_log(3, "USB host ACKs closed connection[%d], ok\n", io_from_usb->connection);
-                        s_tcp_closeacks[io_from_usb->connection] = 0;
+                        vpnx_log(3, "USB host ACKs closed connection[%d][%d], ok\n", c, slot);
+                        s_cons[c].tcp_closeacks[slot] = 0;
                     }
                 }
                 else 
                 {
-                    vpnx_log(3, "USB host sent CLOS for already closed connection[%d], treating as ack\n", io_from_usb->connection);
-                    s_tcp_closeacks[io_from_usb->connection] = 0;
+                    vpnx_log(3, "USB host sent CLOS for already closed connection[%d], treating as ack\n", c, slot);
+                    s_cons[c].tcp_closeacks[slot] = 0;
                 }
             }
             break;
@@ -662,29 +754,34 @@ int vpnx_run_loop_slice()
     //
     if (io_to_tcp && io_to_tcp->count)
     {
-        if (s_tcp_sockets[io_to_tcp->connection] != INVALID_SOCKET)
+        result = vpnx_extract_connslot(io_from_usb->connection, &c, &slot);
+        if (result) 
+        {
+            vpnx_log(0, "Bad connection number, dropping tcp send request\n");
+        }
+        else if (s_cons[c].tcp_sockets[slot] != INVALID_SOCKET)
         {
             vpnx_dump_packet("TCP Tx", io_to_tcp, 3);
-            result = tcp_write(s_tcp_sockets[io_to_tcp->connection], io_to_tcp);
+            result = tcp_write(s_cons[c].tcp_sockets[slot], io_to_tcp);
             if (result != 0)
             {
                 vpnx_log(0, "TCP write failed, closing connection[%d]\n", io_to_tcp->connection);
                 // assume TCP connection is closed, so tell USB side
-                closesocket(s_tcp_sockets[io_to_tcp->connection]);
-                s_tcp_sockets[io_to_tcp->connection] = INVALID_SOCKET;
+                closesocket(s_cons[c].tcp_sockets[slot]);
+                s_cons[c].tcp_sockets[slot] = INVALID_SOCKET;
                 // wait for usb side to close its tcp connection on same channel (for a bit)
-                time(&s_tcp_closeacks[io_to_tcp->connection]);
-                s_tcp_closeacks[io_to_tcp->connection] += VPNX_CLOSE_ACK_TIMEOUT;
+                time(&s_cons[c].tcp_closeacks[slot]);
+                s_cons[c].tcp_closeacks[slot] += VPNX_CLOSE_ACK_TIMEOUT;
                 
-                s_ackseq++;
-                if (s_ackseq > VPNX_MAX_ACK)
+                s_cons[c].ackseq++;
+                if (s_cons[c].ackseq > VPNX_MAX_ACK)
                 {
-                    s_ackseq = 0;
+                    s_cons[c].ackseq = 0;
                 }
                 io_to_usb = &io_packet;
                 io_to_usb->count = 0;
-                io_to_usb->connection = io_to_tcp->connection;
-                io_to_usb->param = s_ackseq;
+                io_to_usb->connection = vpnx_pack_connslot(c, slot);
+                io_to_usb->param = s_cons[c].ackseq;
                 io_to_usb->type = VPNX_USBT_CLOSE;
                 result = 0;
             }
@@ -696,50 +793,73 @@ int vpnx_run_loop_slice()
     }
     if (!io_to_usb)
     {
-        static int last_connection = 0;
+        static int last_conn_port = 0;
         
         // read tcp data packets, but only if we aren't already wanting to write usb data already
         //
-        // serve slots round-robin style
+        // serve slots round-robin style by connection inside port,
+        // i.e. port[0].sock[0], port[1].sock[0], port[2].sock[0], ...
+        //      port[0].sock[1], port[1].sock[1], ...
+        //      port[0].sock[2], ...
         //
-        i = last_connection;
+        c = last_conn_port;
+
         do
         {
-            i++;
-            if (i >= VPNX_MAX_CONNECTIONS)
+            c++;
+            if (c >= VPNX_MAX_PORTS) 
             {
-                i = 0;
+                c = 0;
             }
-            if (s_tcp_sockets[i] != INVALID_SOCKET)
-            {
-                break;
+            slot = s_cons[c].last_slot;
+            
+            if ((s_mode != VPNX_SERVER) || (s_cons[c].server_socket != INVALID_SOCKET))
+            {                
+                do
+                {
+                    slot++;
+                    if (slot >= VPNX_MAX_CONNECTIONS)
+                    {
+                        slot = 0;
+                    }
+                    if (s_cons[c].tcp_sockets[slot] != INVALID_SOCKET)
+                    {
+                        break;
+                    }
+                }
+                while (slot != s_cons[c].last_slot);
+                
+                s_cons[c].last_slot = slot;
+                
             }
         }
-        while (i != last_connection);
-        
-        if (s_tcp_sockets[i] != INVALID_SOCKET)
+        while (c != last_conn_port &&  s_cons[c].tcp_sockets[slot] == INVALID_SOCKET);
+    
+        last_conn_port = c;
+                
+        if (s_cons[c].tcp_sockets[slot] != INVALID_SOCKET)
         {
-            last_connection = i;
+            vpnx_log(6, "now serving [%d][%d]\n", c, slot);
             
-            result = tcp_read(s_tcp_sockets[i], &io_from_tcp);
+            result = tcp_read(s_cons[c].tcp_sockets[slot], &io_from_tcp);
             if (result)
             {
-                vpnx_log(1, "TCP read failed, closing connection[%d]\n", i);
+                vpnx_log(1, "TCP read failed, closing connection[%d][%d]\n", c, slot);
                 // assume TCP connection is closed, so tell USB side
-                closesocket(s_tcp_sockets[i]);
-                s_tcp_sockets[i] = INVALID_SOCKET;
+                closesocket(s_cons[c].tcp_sockets[slot]);
+                s_cons[c].tcp_sockets[slot] = INVALID_SOCKET;
                 // wait for usb side to close its tcp connection on same channel (for a bit)
-                time(&s_tcp_closeacks[i]);
-                s_tcp_closeacks[i] += VPNX_CLOSE_ACK_TIMEOUT;
+                time(&s_cons[c].tcp_closeacks[slot]);
+                s_cons[c].tcp_closeacks[slot] += VPNX_CLOSE_ACK_TIMEOUT;
                 
-                s_ackseq++;
-                if (s_ackseq > VPNX_MAX_ACK)
+                s_cons[c].ackseq++;
+                if (s_cons[c].ackseq > VPNX_MAX_ACK)
                 {
-                    s_ackseq = 0;
+                    s_cons[c].ackseq = 0;
                 }
                 io_to_usb = &io_packet;
-                io_to_usb->param = s_ackseq;
-                io_to_usb->connection = i;
+                io_to_usb->param = s_cons[c].ackseq;
+                io_to_usb->connection = vpnx_pack_connslot(c, slot);
                 io_to_usb->count = 0;
                 io_to_usb->type = VPNX_USBT_CLOSE;
                 result = 0;
@@ -751,7 +871,7 @@ int vpnx_run_loop_slice()
                 if (io_from_tcp && io_from_tcp->count)
                 {
                     io_from_tcp->param = 1;
-                    io_from_tcp->connection = i;
+                    io_from_tcp->connection = vpnx_pack_connslot(c, slot);
                     io_to_usb = io_from_tcp;
                     io_to_usb->type = VPNX_USBT_DATA;
                     vpnx_dump_packet("TCP Rx", io_from_tcp, 3);
@@ -761,9 +881,10 @@ int vpnx_run_loop_slice()
     }
     if (io_to_usb)
     {
-        if (io_to_usb->connection >= VPNX_MAX_CONNECTIONS)
+        result = vpnx_extract_connslot(io_to_usb->connection, &c, &slot);
+        if (result)
         {
-            vpnx_log(0, "Bad connection number, dropping packet to usb\n");
+            vpnx_log(0, "Bad connection, dropping packet to usb\n");
             result = -1;
         }
         else
@@ -781,9 +902,17 @@ int vpnx_run_loop_slice()
     return result;
 }
 
-int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port, uint16_t local_port)
+int vpnx_run_loop_init(
+                        int mode,
+                        void* usb_device,
+                        const char *remote_hosts[VPNX_MAX_PORTS],
+                        uint16_t remote_ports[VPNX_MAX_PORTS],
+                        uint16_t local_ports[VPNX_MAX_PORTS]
+                    )
 {
     int result;
+    int numactive;
+    int c;
     int i;
     
     static bool wasInited = false;
@@ -801,50 +930,67 @@ int vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint
     
         WSAStartup(wVersionRequested, &wsaData);
 #endif                
-        s_server_socket = INVALID_SOCKET;
-
-        for (i = 0; i < VPNX_MAX_CONNECTIONS; i++)
+        for (c = 0; c < VPNX_MAX_PORTS; c++)
         {
-            s_tcp_sockets[i] = INVALID_SOCKET;
-            s_tcp_closeacks[i] = 0;
-        }        
+            for (i = 0; i < VPNX_MAX_CONNECTIONS; i++)
+            {
+                s_cons[c].server_socket     = INVALID_SOCKET;
+                s_cons[c].tcp_sockets[i]    = INVALID_SOCKET;
+                s_cons[c].tcp_closeacks[i]  = 0;
+            }
+        }
+        s_last_conn = 0;
         wasInited = true;
     }
     s_mode = mode;
     s_usb_device = usb_device;
 
-    // this is restartable, so make sure we're cleaned up
-    //
-    if (s_server_socket != INVALID_SOCKET)
+    for (c = 0, numactive = 0; c < VPNX_MAX_PORTS; c++)
     {
-        closesocket(s_server_socket);
-    }
-    s_server_socket = INVALID_SOCKET;
-
-    for (i = 0; i < VPNX_MAX_CONNECTIONS; i++)
-    {
-        if (s_tcp_sockets[i] != INVALID_SOCKET)
-        {
-            closesocket(s_tcp_sockets[i]);
-        }
-        s_tcp_sockets[i] = INVALID_SOCKET;
-    }
-    strncpy(s_remote_host, remote_host, sizeof(s_remote_host) - 1);
-    s_remote_host[sizeof(s_remote_host) - 1] = '\0';
-
-    s_remote_port = remote_port;
-    s_local_port  = local_port;
-    
-    if (s_mode == VPNX_SERVER)
-    {
-        // if server-mode, listen for connections on our local port
+        // this is restartable, so make sure we're cleaned up
         //
-        result = tcp_listen_on_port(s_local_port, &s_server_socket);
-        if (result)
+        if (s_cons[c].server_socket != INVALID_SOCKET)
         {
-            return result;
+            closesocket(s_cons[c].server_socket);
+        }
+        s_cons[c].server_socket = INVALID_SOCKET;
+    
+        for (i = 0; i < VPNX_MAX_CONNECTIONS; i++)
+        {
+            if (s_cons[c].tcp_sockets[i] != INVALID_SOCKET)
+            {
+                closesocket(s_cons[c].tcp_sockets[i]);
+            }
+            s_cons[c].tcp_sockets[i] = INVALID_SOCKET;
+        }
+        s_cons[c].last_slot = 0;
+
+        if (remote_hosts[c] != NULL && local_ports[c] != 0 && remote_ports[c] != 0)
+        {
+            strncpy(s_cons[c].remote_host, remote_hosts[c], sizeof(s_cons[c].remote_host) - 1);
+            s_cons[c].remote_host[sizeof(s_cons[c].remote_host) - 1] = '\0';
+        
+            s_cons[c].remote_port = remote_ports[c];
+            s_cons[c].local_port  = local_ports[c];
+            
+            if (s_mode == VPNX_SERVER)
+            {
+                // if server-mode, listen for connections on our local port
+                //
+                result = tcp_listen_on_port(s_cons[c].local_port, &s_cons[c].server_socket);
+                if (result)
+                {
+                    s_cons[c].server_socket = INVALID_SOCKET;
+                    // allow some bad servers?
+                    //return result;
+                }
+                else
+                {
+                    numactive++;
+                }
+            }
         }
     }
-    return 0;
+    return (numactive > 0) ? 0 : -1;
 }
 

@@ -203,6 +203,9 @@ int tcp_connect(const char *host, uint16_t port, SOCKET *socket_ptr)
     //
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
+	
+	vpnx_log(3, "Connecting to %s:%u\n", host, port);
+	
     result = connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
     if (result < 0)
     {
@@ -324,6 +327,7 @@ int tcp_read(SOCKET sock, vpnx_io_t **io)
 		}
 #endif
 		// 0 count after select > 0 means socket closed
+		vpnx_log(1, "TCP connection recv: %d\n", errno);
         return rc;
     }
     if (rc == 0)

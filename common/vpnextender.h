@@ -20,8 +20,8 @@
 #define VPNX_CLIENT (0) ///< connect to remote host/port from VPN from LAN via USB
 #define VPNX_SERVER (1) ///< accept local connections and forward via USB to LAN
 
-// default VID/PID of Printer device to look for
-//
+/// default VID/PID of Printer device to look for
+///
 #define kVendorID		0x3f0
 #define kProductID		0x102
 
@@ -40,9 +40,13 @@
 /// ALL usb transfers are in units of this one packet size so even
 /// payloads of 1 byte use the entire packet size, keep that in mind
 ///
-#define VPNX_HEADER_SIZE    (2 * sizeof(uint16_t) + 2 * sizeof(uint32_t))
-#define VPNX_PACKET_SIZE    (16384)
-#define VPNX_MAX_PACKET_BYTES (VPNX_PACKET_SIZE - VPNX_HEADER_SIZE)
+#define VPNX_HEADER_SIZE            (2 * sizeof(uint16_t) + 2 * sizeof(uint32_t))
+#define VPNX_PACKET_SIZE            (16384)
+#define VPNX_MAX_PACKET_BYTES       (VPNX_PACKET_SIZE - VPNX_HEADER_SIZE)
+
+/// can't fit host-names more than packet bytes in a connect packet
+///
+#define VPNX_MAX_HOST               (256)
 
 /// types of packets
 ///
@@ -56,12 +60,19 @@
 #define VPNX_USBT_CONFIG_VIDPID     7
 #define VPNX_USBT_REBOOT            8
 
-/// Max number of simultaneous logical connections
+/// Max number of simultaneous logical connections per port
 /// (sockets in tcp world, connection number in usb world)
-/// Web browsers like to open a bunch of persistent sockets
-/// so to work well for browsers we need to support a ferw
 ///
-#define VPNX_MAX_CONNECTIONS     (1)
+/// Web browsers like to open a bunch of persistent sockets
+/// so to work well for browsers we need to support a few
+/// especially keep-alive connections which can hang out
+///
+#define VPNX_MAX_CONNECTIONS        (6)
+
+/// Max number of unique remote host/port pairs. This is
+/// also the number of local ports that will be listened on
+///
+#define VPNX_MAX_PORTS              (4)
 
 /// The USB data transfer packet type
 ///
@@ -125,19 +136,25 @@ int  vpnx_set_vidpid(uint16_t vid, uint16_t pid);
 int  vpnx_set_network(const char *netname, const char *netpass);
 void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level);
 int  vpnx_run_loop_slice(void);
-int  vpnx_run_loop_init(int mode, void* usb_device, const char *remote_host, uint16_t remote_port, uint16_t local_port);
+int  vpnx_run_loop_init(
+                        int mode,
+                        void* usb_device,
+                        const char **remote_hosts,
+                        uint16_t remote_ports[VPNX_MAX_PORTS],
+                        uint16_t local_ports[VPNX_MAX_PORTS]
+                        );
 
 #ifdef VPNX_GUI
 int vpnx_gui_init(
-              bool isserver,
-              const char *remote_host,
-              const uint16_t remote_port,
-              const uint16_t vid,
-              const uint16_t pid,
-              const uint16_t local_port,
-              uint32_t log_level,
-              void (*logging_func)(const char *)
-              );
+                        bool isserver,
+                        const char *remote_hosts[VPNX_MAX_PORTS],
+                        const uint16_t remote_portsa[VPNX_MAX_PORTS],
+                        const uint16_t vid,
+                        const uint16_t pid,
+                        const uint16_t local_ports[VPNX_MAX_PORTS],
+                        uint32_t log_level,
+                        void (*logging_func)(const char *)
+                        );
 int vpnx_gui_slice(void);
 #endif
 #endif

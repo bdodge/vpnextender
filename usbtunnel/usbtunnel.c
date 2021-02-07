@@ -340,7 +340,7 @@ static int useage(const char *progname)
 int main(int argc, const char *argv[])
 {
 	int         mode;
-    char        remote_host[256];
+    char        remote_host[VPNX_MAX_HOST];
     uint16_t    port;
     bool        secure;
     int         loglevel;
@@ -533,7 +533,22 @@ int main(int argc, const char *argv[])
 			}
 			else
 			{
-				vpnx_run_loop_init(mode, (void*)s_usbd, remote_host, port, port);
+				const char *remotes[VPNX_MAX_PORTS];
+				uint16_t lports[VPNX_MAX_PORTS];
+				uint16_t rports[VPNX_MAX_PORTS];
+				int i;
+				
+				for (i = 0; i < VPNX_MAX_PORTS; i++)
+				{
+					remotes[i] = NULL;
+					lports[i] = 0;
+					rports[i] = 0;
+				}
+				remotes[0] = remote_host;
+				lports[0] = port;
+				rports[0] = port;
+				
+				vpnx_run_loop_init(mode, (void*)s_usbd, remotes, lports, rports);
 			}
 		}
 		while (! result)
