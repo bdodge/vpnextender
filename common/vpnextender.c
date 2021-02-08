@@ -285,7 +285,7 @@ void vpnx_dump_packet(const char *because, vpnx_io_t *io, int level)
         
     level++;
 
-    for (i = j = 0; i < VPNX_HEADER_SIZE + (int)io->count; i++)
+    for (i = j = 0; i < ((int)VPNX_HEADER_SIZE + (int)io->count); i++)
     {
         data = ((uint8_t*)io)[i]; //io->bytes[i];
 
@@ -611,7 +611,7 @@ int vpnx_run_loop_slice()
                     if (pcolon) 
                     {
                         *pcolon++ = '\0';
-                        s_cons[c].remote_port = strtoul(pcolon, NULL, 10);
+                        s_cons[c].remote_port = (uint16_t)strtoul(pcolon, NULL, 10);
                     }
                     vpnx_log(3, "USB host specified remote host: %s on %s port %u\n",
                              s_cons[c].remote_host, (pcolon) ? "specified" : "default", s_cons[c].remote_port);
@@ -928,7 +928,7 @@ int vpnx_run_loop_init(
         
         wVersionRequested = MAKEWORD( 1, 1 );
     
-        WSAStartup(wVersionRequested, &wsaData);
+        (void)WSAStartup(wVersionRequested, &wsaData);
 #endif                
         for (c = 0; c < VPNX_MAX_PORTS; c++)
         {

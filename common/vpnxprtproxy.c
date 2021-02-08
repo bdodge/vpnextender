@@ -104,13 +104,13 @@ int find_usb_device(long vid, long pid)
     DWORD   cbNeeded;
     BYTE    *ditBuf;
     DWORD   ditBufSize;
-    char    portName[MAX_PATH];
-    char    portEpName[MAX_PATH];
+    WCHAR   portName[MAX_PATH];
+    WCHAR   portEpName[MAX_PATH];
     int     index;
     int     err;
 
-    char  vidstr[32], pidstr[32];
-    int   dvid, dpid;
+    WCHAR  vidstr[32], pidstr[32];
+    int    dvid, dpid;
     
     portGUID = &s_guid_printer;
     portName[0] = '\0';
@@ -157,7 +157,7 @@ int find_usb_device(long vid, long pid)
             
             if(rv)
             {
-                char* ps;
+                WCHAR* ps;
 
                 // extract vid and pid from device path
                 // &devIntDetail->DevicePath;
@@ -167,23 +167,23 @@ int find_usb_device(long vid, long pid)
                 dvid = 0;
                 dpid = 0;
 
-                if((ps = strstr(devIntDetail->DevicePath, "vid_")) != NULL)
+                if((ps = wcsstr(devIntDetail->DevicePath, L"vid_")) != NULL)
                 {
-                    dvid = strtol(ps+4, NULL, 16);
-                    _snprintf(vidstr, 32, "%d", vid );
+                    dvid = wcstoul(ps+4, NULL, 16);
+                    _snwprintf(vidstr, 32, L"%d", vid );
                 }
-                if((ps = strstr(devIntDetail->DevicePath, "pid_")) != NULL)
+                if((ps = wcsstr(devIntDetail->DevicePath, L"pid_")) != NULL)
                 {
-                    dpid = strtol(ps+4, NULL, 16);
-                    _snprintf(pidstr, 32, "%d", pid);
+                    dpid = wcstoul(ps+4, NULL, 16);
+                    _snwprintf(pidstr, 32, L"%d", pid);
                 }
                 if (dvid == vid && dpid == pid)
                 {
                     gusb_device = create_usb_desc();
 
                     vpnx_log(2, "Found device with matching vid/pid\n");
-                    strncpy(portName, devIntDetail->DevicePath, sizeof(portName) - 1);
-                    portName[sizeof(portName) - 1] = '\0';
+                    wcsncpy(portName, devIntDetail->DevicePath, sizeof(portName)/sizeof(WCHAR) - 1);
+                    portName[sizeof(portName)/sizeof(WCHAR) - 1] = '\0';
                     break;
                 }
                 index++;
@@ -219,7 +219,7 @@ int find_usb_device(long vid, long pid)
 
     // open bulk channel port
     //
-    _snprintf(portEpName, MAX_PATH, "%s\\%d", portName, gusb_device->rep);
+    _snwprintf(portEpName, MAX_PATH, L"%s\\%d", portName, gusb_device->rep);
 
     gusb_device->hio_rd = CreateFile(
                             portName, 
@@ -239,7 +239,7 @@ int find_usb_device(long vid, long pid)
     {
         // open control channel port
         //
-        _snprintf(portEpName, MAX_PATH, "%s\\%d", portName, gusb_device->wep);
+        _snwprintf(portEpName, MAX_PATH, L"%s\\%d", portName, gusb_device->wep);
 
         gusb_device->hio_wr = CreateFile(
                                 portName, 
