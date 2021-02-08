@@ -456,7 +456,7 @@ int vpnx_run_loop_slice()
         }
         // round-robin access of server sockets
         //
-        for (j = 0, c = s_last_conn; j < VPNX_MAX_PORTS; j++)
+        for (j = 0, slot = 0, c = s_last_conn; j < VPNX_MAX_PORTS; j++)
         {
             for (slot = 0; slot < VPNX_MAX_CONNECTIONS; slot++)
             {

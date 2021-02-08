@@ -1800,30 +1800,35 @@ int main(int argc, const char *argv[])
 // See GUI file specific to OS/Windowing system for "main"
 //
 static enum { gsInit, gsUsbSearch, gsUsbOpened, gsRun } g_state = gsInit;
-static char     x_remote_host[256];
-static uint16_t x_remote_port;
+static char     x_remote_hosts[VPNX_MAX_PORTS][VPNX_MAX_HOST];
+static uint16_t x_remote_ports[VPNX_MAX_PORTS];
 static uint16_t x_vid;
 static uint16_t x_pid;
-static uint16_t x_local_port;
+static uint16_t x_local_ports[VPNX_MAX_PORTS];
 static int      x_mode;
 
 int vpnx_gui_init(
               bool isserver,
-              const char *remote_host,
-              const uint16_t remote_port,
+              const char *remote_hosts,
+              const uint16_t remote_ports[VPNX_MAX_PORTS],
               const uint16_t vid,
               const uint16_t pid,
-              const uint16_t local_port,
+              const uint16_t local_ports[VPNX_MAX_PORTS],
               uint32_t log_level,
               void (*logging_func)(const char *)
               )
 {
-    strncpy(x_remote_host, remote_host, sizeof(x_remote_host) - 1);
-    x_remote_host[sizeof(x_remote_host) - 1] = '\0';
-    x_remote_port = remote_port;
+    int i;
+    
+    for (i = 0; i < VPNX_MAX_PORTS; i++)
+    {
+        strncpy(&x_remote_hosts[i][0], remote_hosts, VPNX_MAX_HOST - 1);
+        x_remote_hosts[i][VPNX_MAX_HOST - 1] = '\0';
+        x_remote_ports[i] = remote_ports[i];
+        x_local_ports[i]  = local_ports[i];
+    }
     x_vid = vid;
     x_pid = pid;
-    x_local_port = local_port;
     x_mode = isserver ? VPNX_SERVER : VPNX_CLIENT;
     
     gusb_device = NULL;
@@ -1841,6 +1846,8 @@ int vpnx_gui_init(
 int vpnx_gui_slice(void)
 {
     int result;
+    const char *remotes[VPNX_MAX_PORTS];
+    int i;
     
     switch (g_state)
     {
@@ -1864,7 +1871,11 @@ int vpnx_gui_slice(void)
             break;
             
         case gsUsbOpened:
-            vpnx_run_loop_init(x_mode, gusb_device, x_remote_host, x_remote_port, x_local_port);
+            for (i = 0; i < VPNX_MAX_PORTS; i++)
+            {
+                remotes[i] = &x_remote_hosts[i][0];
+            }
+            vpnx_run_loop_init(x_mode, gusb_device, remotes, x_remote_ports, x_local_ports);
             g_state = gsRun;
             break;
         

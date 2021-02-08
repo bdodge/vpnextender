@@ -62,15 +62,22 @@ class ViewController: NSTabViewController {
             print("Already running xfer")
             return
         }
+        var hostlist : String = def_remote_host
+        var rports : [UInt16] = Array(repeating: 0, count: Int(VPNX_MAX_PORTS))
+        var lports : [UInt16] = Array(repeating: 0, count: Int(VPNX_MAX_PORTS))
+               
+        rports[0] = def_remote_port
+        lports[0] = def_local_port
+        
         // Initialize the prtproxy
         //
         result = vpnx_gui_init(
                     true,
-                    def_remote_host,
-                    def_remote_port,
+                    hostlist,
+                    rports,
                     def_vid,
                     def_pid,
-                    def_local_port,
+                    lports,
                     def_log_level,
                     vpnx_mem_logger
                     );

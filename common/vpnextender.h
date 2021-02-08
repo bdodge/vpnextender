@@ -147,7 +147,7 @@ int  vpnx_run_loop_init(
 #ifdef VPNX_GUI
 int vpnx_gui_init(
                         bool isserver,
-                        const char *remote_hosts[VPNX_MAX_PORTS],
+                        const char *remote_hosts, /* comma sep. list to make swift easier */
                         const uint16_t remote_portsa[VPNX_MAX_PORTS],
                         const uint16_t vid,
                         const uint16_t pid,
