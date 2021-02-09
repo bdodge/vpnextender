@@ -11,13 +11,24 @@
 #define IDM_EXIT                        105
 #define IDS_BALLOON_BODY                105
 #define IDS_TOOLTIP                     106
-#define IDI_VPNEXTENDER                 107
 #define IDI_SMALL                       108
+#define IDI_VPNEXTENDER                 108
 #define IDC_VPNEXTENDER                 109
 #define IDR_MAINFRAME                   128
 #define IDD_SETTINGS                    130
-#define IDR_MENU1                       131
 #define IDR_POPUP                       131
+#define IDC_RHOST1                      1006
+#define IDC_LPORT1                      1007
+#define IDC_RPORT1                      1008
+#define IDC_RHOST2                      1009
+#define IDC_LPORT2                      1010
+#define IDC_RPORT2                      1011
+#define IDC_RHOST3                      1012
+#define IDC_LPORT3                      1013
+#define IDC_RPORT3                      1014
+#define IDC_RHOST4                      1018
+#define IDC_LPORT4                      1019
+#define IDC_RPORT4                      1020
 #define ID_POPUP_                       32771
 #define ID_POPUP_SETTINGS               32772
 #define ID_POPUP_EXIT                   32773
@@ -31,7 +42,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         32775
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_CONTROL_VALUE         1008
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

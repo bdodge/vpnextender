@@ -18,6 +18,157 @@ HICON g_hIcon;
 static const UINT WM_TRAY = WM_USER + 1;
 static NOTIFYICONDATA niData;
 
+static WCHAR szRemoteHosts[VPNX_MAX_PORTS][VPNX_MAX_HOST];
+static uint16_t remote_ports[VPNX_MAX_PORTS];
+static uint16_t local_ports[VPNX_MAX_PORTS];
+
+static HKEY g_hKey;
+
+int OpenSettings(void)
+{
+    TCHAR keyname[MAX_PATH * 2];
+    bool allusers = false;
+
+    g_hKey = NULL;
+
+    _tcscpy(keyname, _T("Software\\BSA Software\\VPNx\\"));
+    int err = RegCreateKey((allusers ? HKEY_LOCAL_MACHINE : HKEY_CURRENT_USER), keyname, &g_hKey);
+    if (err != ERROR_SUCCESS)
+    {
+        g_hKey = NULL;
+    }
+    return err != ERROR_SUCCESS;
+}
+
+void CloseSettings(void)
+{
+    if (g_hKey != NULL)
+    {
+        RegCloseKey(g_hKey);
+        g_hKey = NULL;
+    }
+}
+
+static void SetStringSetting(LPCTSTR name, int index, LPTSTR value)
+{
+    TCHAR keyname[MAX_PATH];
+    HKEY hKey;
+    int  err;
+
+    _sntprintf(keyname, _countof(keyname), _T("%u"), index);
+
+    err = RegCreateKey(g_hKey, name, &hKey);
+    err = RegSetValueEx(hKey, keyname, NULL, REG_SZ, (LPBYTE)value, (_tcslen(value) + 1) * sizeof(TCHAR));
+
+    RegCloseKey(hKey);
+}
+
+static void SetPortSetting(LPCTSTR name, int index, uint16_t value)
+{
+    TCHAR keyname[MAX_PATH];
+    HKEY hKey;
+    int  err;
+    DWORD val = (DWORD)value;
+
+    _sntprintf(keyname, _countof(keyname), _T("%u"), index);
+
+    err = RegCreateKey(g_hKey, name, &hKey);
+    err = RegSetValueEx(hKey, keyname, NULL, REG_DWORD, (LPBYTE)&val, sizeof(DWORD));
+
+    RegCloseKey(hKey);
+}
+
+static void GetStringSetting(LPCTSTR name, int index, LPTSTR value, LPCTSTR default_value)
+{
+    TCHAR keyname[MAX_PATH];
+    HKEY hKey;
+    DWORD dwType = REG_SZ;
+    DWORD cbData = VPNX_MAX_HOST;
+    int  err;
+
+    _tcsncpy(value, default_value, VPNX_MAX_HOST);
+
+    _sntprintf(keyname, _countof(keyname), _T("%u"), index);
+
+    err = RegCreateKey(g_hKey, name, &hKey);
+    err = RegQueryValueEx(hKey, name, NULL, &dwType, (LPBYTE)value, &cbData);
+
+    RegCloseKey(hKey);
+
+    if (err != ERROR_SUCCESS)
+    {
+        if (err == 2)
+        {
+            // set default value
+            //
+            SetStringSetting(name, index, value);
+        }
+    }
+}
+
+static void GetPortSetting(LPCTSTR name, int index, uint16_t *value, uint16_t default_value)
+{
+    TCHAR keyname[MAX_PATH];
+    HKEY  hKey;
+    BYTE  rawData[32];
+    DWORD dwType = REG_DWORD;
+    DWORD cbData = sizeof(rawData);
+    DWORD val;
+    int  err;
+
+    val = default_value;
+
+    _sntprintf(keyname, _countof(keyname), _T("%u"), index);
+
+    err = RegCreateKey(g_hKey, name, &hKey);
+    err = RegQueryValueEx(hKey, keyname, NULL, &dwType, rawData, &cbData);
+    RegCloseKey(hKey);
+
+    if (err != ERROR_SUCCESS)
+    {
+        if (err == 2)
+        {
+            // set default value
+            //
+            SetPortSetting(name, index, val);
+        }
+    }
+    else
+    {
+        if (dwType == REG_SZ)
+        {
+            val = _tcstol((LPTSTR)rawData, NULL, 0);
+        }
+        else
+        {
+            memcpy(&val, rawData, sizeof(DWORD));
+        }
+    }
+    *value = (uint16_t)val;
+}
+
+void RestoreSettings(void)
+{
+    int i;
+
+    if (!OpenSettings())
+    {
+        for (i = 0; i < VPNX_MAX_PORTS; i++)
+        {
+            GetStringSetting(_T("Remote Host"), i, &szRemoteHosts[i][0], _T(""));
+            GetPortSetting(_T("Remote Port"), i, &remote_ports[i], 0);
+            GetPortSetting(_T("Local Port"), i, &remote_ports[i], 0);
+        }
+        CloseSettings();
+    }
+}
+
+void SaveSettings(void)
+{
+
+}
+
+
 INT_PTR CALLBACK AboutProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     UNREFERENCED_PARAMETER(lParam);
@@ -50,6 +201,9 @@ INT_PTR CALLBACK SettingsProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPa
         switch (LOWORD(wParam))
         {
         case IDOK:
+
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
         case IDCANCEL:
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
@@ -218,6 +372,8 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    LoadStringW(hInstance, IDS_TOOLTIP, szString, MAX_LOADSTRING);
    wcsncpy_s(niData.szTip, _countof(niData.szTip), szString, _countof(niData.szTip));
+
+   RestoreSettings();
 
    if (!Shell_NotifyIcon(NIM_ADD, &niData))
    {
