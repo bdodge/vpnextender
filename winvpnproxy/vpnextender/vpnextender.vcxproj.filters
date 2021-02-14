@@ -27,6 +27,9 @@
     <ClInclude Include="..\..\common\vpnxtcp.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\common\vpnextender.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\common\vpnextender.c">

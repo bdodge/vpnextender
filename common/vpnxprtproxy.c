@@ -3,6 +3,7 @@
 #include "vpnxtcp.h"
 
 #ifdef Windows
+#include "tchar.h"
 #include "winusb.h"
 #include "winusbio.h"
 #elif defined(Linux)
@@ -11,7 +12,7 @@
   #else
     #include <libusb-1.0/libusb.h>
   #endif
-  #define LIBUSBSYNC 1 //  use synchronous IO. I found no benefit to the async API
+  #define LIBUSBSYNC 1 //  use synchtcstronous IO. I found no benefit to the async API
 #include <signal.h>
 #elif defined(OSX)
 #include <IOKit/IOKitLib.h>
@@ -104,16 +105,16 @@ int find_usb_device(long vid, long pid)
     DWORD   cbNeeded;
     BYTE    *ditBuf;
     DWORD   ditBufSize;
-    WCHAR   portName[MAX_PATH];
-    WCHAR   portEpName[MAX_PATH];
+    TCHAR   portName[MAX_PATH];
+    TCHAR   portEpName[MAX_PATH];
     int     index;
     int     err;
 
-    WCHAR  vidstr[32], pidstr[32];
+    TCHAR  vidstr[32], pidstr[32];
     int    dvid, dpid;
     
     portGUID = &s_guid_printer;
-    portName[0] = '\0';
+    portName[0] = _T('\0');
 
     ditBufSize = 65536;
     ditBuf = (LPBYTE)malloc(ditBufSize);
@@ -157,7 +158,7 @@ int find_usb_device(long vid, long pid)
             
             if(rv)
             {
-                WCHAR* ps;
+                LPTSTR ps;
 
                 // extract vid and pid from device path
                 // &devIntDetail->DevicePath;
@@ -167,23 +168,23 @@ int find_usb_device(long vid, long pid)
                 dvid = 0;
                 dpid = 0;
 
-                if((ps = wcsstr(devIntDetail->DevicePath, L"vid_")) != NULL)
+                if((ps = _tcsstr(devIntDetail->DevicePath, L"vid_")) != NULL)
                 {
-                    dvid = wcstoul(ps+4, NULL, 16);
-                    _snwprintf(vidstr, 32, L"%d", vid );
+                    dvid = _tcstoul(ps+4, NULL, 16);
+                    _sntprintf(vidstr, 32, _T("%d"), vid );
                 }
-                if((ps = wcsstr(devIntDetail->DevicePath, L"pid_")) != NULL)
+                if((ps = _tcsstr(devIntDetail->DevicePath, _T("pid_"))) != NULL)
                 {
-                    dpid = wcstoul(ps+4, NULL, 16);
-                    _snwprintf(pidstr, 32, L"%d", pid);
+                    dpid = _tcstoul(ps+4, NULL, 16);
+                    _sntprintf(pidstr, 32, _T("%d"), pid);
                 }
                 if (dvid == vid && dpid == pid)
                 {
                     gusb_device = create_usb_desc();
 
                     vpnx_log(2, "Found device with matching vid/pid\n");
-                    wcsncpy(portName, devIntDetail->DevicePath, sizeof(portName)/sizeof(WCHAR) - 1);
-                    portName[sizeof(portName)/sizeof(WCHAR) - 1] = '\0';
+                    _tcsncpy(portName, devIntDetail->DevicePath, sizeof(portName)/sizeof(TCHAR) - 1);
+                    portName[sizeof(portName)/sizeof(TCHAR) - 1] = '\0';
                     break;
                 }
                 index++;
@@ -195,7 +196,7 @@ int find_usb_device(long vid, long pid)
         }
         else
         {
-            vpnx_log(0, "No devices of type\n");
+            vpnx_log(4, "No devices of type\n");
             err = GetLastError();
         }
     }
@@ -219,7 +220,7 @@ int find_usb_device(long vid, long pid)
 
     // open bulk channel port
     //
-    _snwprintf(portEpName, MAX_PATH, L"%s\\%d", portName, gusb_device->rep);
+    _sntprintf(portEpName, MAX_PATH, _T("%s\\%d"), portName, gusb_device->rep);
 
     gusb_device->hio_rd = CreateFile(
                             portName, 
@@ -239,7 +240,7 @@ int find_usb_device(long vid, long pid)
     {
         // open control channel port
         //
-        _snwprintf(portEpName, MAX_PATH, L"%s\\%d", portName, gusb_device->wep);
+        _sntprintf(portEpName, MAX_PATH, _T("%s\\%d"), portName, gusb_device->wep);
 
         gusb_device->hio_wr = CreateFile(
                                 portName, 
@@ -1029,14 +1030,16 @@ void usb_read_complete(void *refCon, IOReturn kr, void *arg0)
 
 int usb_open_device(long vid, long pid)
 {
+    static bool s_blurbed_none = false;
     int result;
     
     gusb_device = NULL;
-    
+
     result = find_usb_device(vid, pid);
     if (result)
     {
-        vpnx_log(0, "Can't find any USB tunnel devices\n");
+        vpnx_log(s_blurbed_none ? 4 : 0, "Can't find any USB tunnel devices\n");
+        s_blurbed_none = true;
         return result;
     }
     #ifdef OSX
@@ -1361,7 +1364,7 @@ int usb_read(void *pdev, vpnx_io_t **io)
             }
             else
             {
-                vpnx_log(1, "incomplete/pending io\n");
+                vpnx_log(4, "incomplete/pending io\n");
             }
             // read not complete, keep going
             return 0;
@@ -1819,11 +1822,25 @@ int vpnx_gui_init(
               )
 {
     int i;
-    
+    int j;
+
     for (i = 0; i < VPNX_MAX_PORTS; i++)
     {
         strncpy(&x_remote_hosts[i][0], remote_hosts, VPNX_MAX_HOST - 1);
         x_remote_hosts[i][VPNX_MAX_HOST - 1] = '\0';
+        for (j = 0; j < VPNX_MAX_HOST; j++)
+        {
+            if (x_remote_hosts[i][j] == ',' || x_remote_hosts[i][j] == '\0')
+            {
+                x_remote_hosts[i][j] = '\0';
+                break;
+            }
+        }
+        remote_hosts += j;
+        if (remote_hosts[0] == ',')
+        {
+            remote_hosts++;
+        }
         x_remote_ports[i] = remote_ports[i];
         x_local_ports[i]  = local_ports[i];
     }
@@ -1853,7 +1870,17 @@ int vpnx_gui_slice(void)
     {
         case gsInit:
             // kick off usb device finder
-            result = find_usb_device(x_vid, x_pid);
+            result = usb_open_device(x_vid, x_pid);
+            if (result < 0)
+            {
+#ifdef Windows
+                WaitMessage();
+#elif defined(Linux)
+                usleep(10000);
+#endif
+                result = 0;
+                break;
+            }
             if (result)
             {
                 vpnx_log(0, "Can't find any USB tunnel devices\n");

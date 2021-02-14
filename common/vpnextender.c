@@ -99,6 +99,10 @@ void vpnx_log(int level, const char *fmt, ...)
     }
     else 
     {
+#ifdef Windows
+        vsnprintf(s_log_buffer, sizeof(s_log_buffer), fmt, args);
+        OutputDebugStringA(s_log_buffer);
+#else
         if (level != 0)
         {
             vprintf(fmt, args);
@@ -107,6 +111,7 @@ void vpnx_log(int level, const char *fmt, ...)
         {
             vfprintf(stderr, fmt, args);
         }
+#endif
     }
     va_end(args);
 }
@@ -119,7 +124,7 @@ static int s_loghead;
 static int s_logtail;
 static int s_logcount;
 static int s_logsize;
-    
+
 void vpnx_mem_logger(const char *msg)
 {
     if (! s_log) 
