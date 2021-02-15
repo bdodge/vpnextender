@@ -80,18 +80,18 @@ extern "C" {
 
 /// The USB data transfer packet type
 ///
-    typedef struct /*__attribute__((packed))*/ tag_vpnx_io
-    {
-        uint32_t    type;           ///< type pf packet
-        uint32_t    count;          ///< how many bytes in bytes
-        uint16_t    param;          ///< generic parameter
-        uint16_t    connection;     ///< logical connection number (both sides use same index based on server)
-        uint8_t     bytes[VPNX_MAX_PACKET_BYTES];
-    }
-    vpnx_io_t;
+typedef struct /*__attribute__((packed))*/ tag_vpnx_io
+{
+    uint32_t    type;           ///< type pf packet
+    uint32_t    count;          ///< how many bytes in bytes
+    uint16_t    param;          ///< generic parameter
+    uint16_t    connection;     ///< logical connection number (both sides use same index based on server)
+    uint8_t     bytes[VPNX_MAX_PACKET_BYTES];
+}
+vpnx_io_t;
 
-    /// make some things OS agnostic
-    ///
+/// make some things OS agnostic
+///
 #ifndef Windows
     typedef int SOCKET;
 #define INVALID_SOCKET (-1)
@@ -106,7 +106,7 @@ extern "C" {
 #define USB_CLASS_USER          0xFF
 
 #ifdef Windows
-    static const GUID s_guid_printer =
+static const GUID s_guid_printer =
     { 0x28d78fad, 0x5a12, 0x11D1, { 0xae, 0x5b, 0x00, 0x00, 0xf8, 0x03, 0xa8, 0xc2 } };
 
 #define MALLOC malloc
@@ -122,44 +122,48 @@ extern "C" {
 #define FREE   free
 #endif
 
-    /// usb read/write functions are supplied by the application as they
-    /// are much different on the host based proxy program vs the
-    /// the tunnel on Linux using a kernel driver
-    ///
-    extern int usb_write(void* dev, vpnx_io_t* io);
-    extern int usb_read(void* dev, vpnx_io_t** io);
+/// usb read/write functions are supplied by the application as they
+/// are much different on the host based proxy program vs the
+/// the tunnel on Linux using a kernel driver
+///
+extern int usb_write(void* dev, vpnx_io_t* io);
+extern int usb_read(void* dev, vpnx_io_t** io);
 
-    void vpnx_log(int level, const char* fmt, ...);
-    void vpnx_mem_logger(const char* msg);
-    void vpnx_get_log_string(char* msg, int nmsg);
-    void vpnx_set_log_function(void (*logging_func)(const char*));
-    void vpnx_set_log_level(uint32_t newlevel);
-    int  vpnx_get_log_level(void);
-    void vpnx_reboot_extender(void);
-    int  vpnx_set_vidpid(uint16_t vid, uint16_t pid);
-    int  vpnx_set_network(const char* netname, const char* netpass);
-    void vpnx_dump_packet(const char* because, vpnx_io_t* io, int level);
-    int  vpnx_run_loop_slice(void);
-    int  vpnx_run_loop_init(
-        int mode,
-        void* usb_device,
-        const char** remote_hosts,
-        uint16_t remote_ports[VPNX_MAX_PORTS],
-        uint16_t local_ports[VPNX_MAX_PORTS]
-    );
+void vpnx_log(int level, const char* fmt, ...);
+void vpnx_mem_logger(const char* msg);
+void vpnx_get_log_string(char* msg, int nmsg);
+void vpnx_set_log_function(void (*logging_func)(const char*));
+void vpnx_set_log_level(uint32_t newlevel);
+int  vpnx_get_log_level(void);
+uint32_t vpnx_xfer_tx_count(void);
+uint32_t vpnx_xfer_rx_count(void);
+const char *vpnx_local_status(void);
+const char *vpnx_extender_status(void);
+void vpnx_reboot_extender(void);
+int  vpnx_set_vidpid(uint16_t vid, uint16_t pid);
+int  vpnx_set_network(const char* netname, const char* netpass);
+void vpnx_dump_packet(const char* because, vpnx_io_t* io, int level);
+int  vpnx_run_loop_slice(void);
+int  vpnx_run_loop_init(
+                        int mode,
+                        void* usb_device,
+                        const char** remote_hosts,
+                        uint16_t remote_ports[VPNX_MAX_PORTS],
+                        uint16_t local_ports[VPNX_MAX_PORTS]
+                    );
 
 #ifdef VPNX_GUI
-    int vpnx_gui_init(
-        bool isserver,
-        const char* remote_hosts, /* comma sep. list to make swift easier */
-        const uint16_t remote_portsa[VPNX_MAX_PORTS],
-        const uint16_t vid,
-        const uint16_t pid,
-        const uint16_t local_ports[VPNX_MAX_PORTS],
-        uint32_t log_level,
-        void (*logging_func)(const char*)
-    );
-    int vpnx_gui_slice(void);
+int vpnx_gui_init(
+                        bool isserver,
+                        const char* remote_hosts, /* comma sep. list to make swift easier */
+                        const uint16_t remote_portsa[VPNX_MAX_PORTS],
+                        const uint16_t vid,
+                        const uint16_t pid,
+                        const uint16_t local_ports[VPNX_MAX_PORTS],
+                        uint32_t log_level,
+                        void (*logging_func)(const char*)
+                    );
+int vpnx_gui_slice(void);
 #endif
 #ifdef __cplusplus
 }

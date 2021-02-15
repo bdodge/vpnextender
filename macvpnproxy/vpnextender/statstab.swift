@@ -28,7 +28,16 @@ class statstab: NSViewController {
         rx_count.stringValue = "0"
         local_status.stringValue = ""
         remote_status.stringValue = ""
-        loglevel.selectItem(at: Int(myParent!.def_log_level) - 1)
+        
+        var loglev: Int
+        
+        if let level = myParent?.def_log_level {
+            loglev = Int(level)
+        }
+        else {
+            loglev = 1
+        }
+        loglevel.selectItem(at: loglev)
         
         // start a timer for readinf the mem log (use objc code to allow earlier target sdk)
         logtimer = Timer.scheduledTimer(timeInterval: 0.25, target: self,
@@ -53,6 +62,15 @@ class statstab: NSViewController {
             }
         }
         while (bytes[0] != 0)
+        
+        var xfer = vpnx_xfer_tx_count()
+        tx_count.stringValue = String(xfer)
+
+        xfer = vpnx_xfer_rx_count()
+        rx_count.stringValue = String(xfer)
+        
+        local_status.stringValue = String(cString: vpnx_local_status())
+        remote_status.stringValue = String(cString: vpnx_extender_status())
     }
     
     func addToLog(_ msg: String) {
@@ -65,8 +83,8 @@ class statstab: NSViewController {
     }
     
     @IBAction func onLogLevel(_ sender: Any) {
-        myParent?.def_log_level = 1 + UInt32(loglevel.indexOfSelectedItem)
+        myParent?.def_log_level = UInt32(loglevel.indexOfSelectedItem)
         myParent?.StoreSettings()
-        vpnx_set_log_level(1 + UInt32(loglevel.indexOfSelectedItem))
+        vpnx_set_log_level(UInt32(loglevel.indexOfSelectedItem))
     }
 }

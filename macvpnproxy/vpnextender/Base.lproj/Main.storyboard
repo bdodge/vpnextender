@@ -129,7 +129,7 @@
                         <tabViewItem id="ybd-UE-fsn"/>
                     </tabViewItems>
                     <tabView key="tabView" type="noTabsNoBorder" id="iAU-lo-Udc">
-                        <rect key="frame" x="0.0" y="2" width="400" height="300"/>
+                        <rect key="frame" x="0.0" y="2" width="401" height="300"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <font key="font" metaFont="message"/>
                         <connections>
@@ -147,18 +147,18 @@
                 </tabViewController>
                 <customObject id="2dF-xW-LD6" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-915" y="-178"/>
+            <point key="canvasLocation" x="-941.5" y="-226"/>
         </scene>
         <!--Advanced-->
         <scene sceneID="6jh-rz-Eeg">
             <objects>
                 <viewController title="Advanced" showSeguePresentationStyle="single" id="dAS-Wv-woh" customClass="advancedtab" customModule="vpnextender" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" autoresizesSubviews="NO" id="Aqi-y5-o0D">
-                        <rect key="frame" x="0.0" y="0.0" width="400" height="300"/>
+                        <rect key="frame" x="0.0" y="0.0" width="500" height="400"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="SdX-p6-Bsh">
-                                <rect key="frame" x="311" y="13" width="75" height="32"/>
+                                <rect key="frame" x="411" y="13" width="75" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Apply" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="XcA-Al-wpI">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -168,42 +168,6 @@
                                     <action selector="onApply:" target="dAS-Wv-woh" id="QCT-p7-GuE"/>
                                 </connections>
                             </button>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="naI-YT-wmN">
-                                <rect key="frame" x="20" y="264" width="153" height="16"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Extender VendorId     0x" id="Eqb-NP-aUL">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="QTh-gc-a4z">
-                                <rect key="frame" x="20" y="235" width="153" height="16"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Extender ProductId    0x" id="Zeg-DH-kOy">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4Z4-xF-Z3i">
-                                <rect key="frame" x="179" y="262" width="96" height="21"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="A58-2x-9nP">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="W7H-7E-rIK">
-                                <rect key="frame" x="179" y="233" width="96" height="21"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="rRD-ae-dgr">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Ycz-kP-SEc">
                                 <rect key="frame" x="14" y="13" width="231" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
@@ -226,8 +190,44 @@
                                     <action selector="onRestartExtender:" target="dAS-Wv-woh" id="VNC-Bj-0Gj"/>
                                 </connections>
                             </button>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="naI-YT-wmN">
+                                <rect key="frame" x="18" y="339" width="153" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Extender VendorId     0x" id="Eqb-NP-aUL">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="QTh-gc-a4z">
+                                <rect key="frame" x="18" y="310" width="153" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Extender ProductId    0x" id="Zeg-DH-kOy">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4Z4-xF-Z3i">
+                                <rect key="frame" x="177" y="337" width="96" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="A58-2x-9nP">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="W7H-7E-rIK">
+                                <rect key="frame" x="177" y="308" width="96" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="rRD-ae-dgr">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FXn-lZ-t1b">
-                                <rect key="frame" x="22" y="106" width="360" height="106"/>
+                                <rect key="frame" x="20" y="181" width="460" height="106"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <textFieldCell key="cell" id="B10-Od-LNe">
                                     <font key="font" metaFont="system"/>
@@ -245,36 +245,18 @@
                 </viewController>
                 <customObject id="3b6-L3-IM2" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-905" y="326"/>
+            <point key="canvasLocation" x="-975" y="194"/>
         </scene>
-        <!--Remote Settings-->
+        <!--Connection Settings-->
         <scene sceneID="hh0-w0-6vQ">
             <objects>
-                <viewController title="Remote Settings" showSeguePresentationStyle="single" id="ud2-eY-uJN" customClass="remotetab" customModule="vpnextender" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController title="Connection Settings" showSeguePresentationStyle="single" id="ud2-eY-uJN" customClass="remotetab" customModule="vpnextender" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" autoresizesSubviews="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zVE-wy-nqF">
-                        <rect key="frame" x="0.0" y="0.0" width="400" height="300"/>
+                        <rect key="frame" x="0.0" y="0.0" width="500" height="400"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MUb-xZ-RCD">
-                                <rect key="frame" x="18" y="264" width="228" height="16"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Remote host name or IP address" id="xIE-ap-PDw">
-                                    <font key="font" usesAppearanceFont="YES"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zl4-70-a1D">
-                                <rect key="frame" x="18" y="152" width="199" height="16"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Remote port number" id="ElM-xr-m1g">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
                             <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="s0Q-Kj-ZSN">
-                                <rect key="frame" x="20" y="180" width="354" height="21"/>
+                                <rect key="frame" x="118" y="208" width="264" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="remote-host" drawsBackground="YES" id="w9j-ez-KU6">
                                     <font key="font" metaFont="system"/>
@@ -282,18 +264,8 @@
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ibI-Jv-oje">
-                                <rect key="frame" x="38" y="54" width="338" height="90"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" id="euQ-qz-fDM">
-                                    <font key="font" metaFont="system"/>
-                                    <string key="title">This is the port number the machine on your local network uses to communicate. For example a newer printer will use 631 and older printers might use 9100. For ssh to a local system use 22. To see the web page on a local systme use 80, etc. </string>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="gCF-NS-y9A">
-                                <rect key="frame" x="302" y="24" width="75" height="32"/>
+                                <rect key="frame" x="417" y="13" width="75" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Apply" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="RoY-4x-urw">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -303,18 +275,8 @@
                                     <action selector="onApply:" target="ud2-eY-uJN" id="jiq-iu-soR"/>
                                 </connections>
                             </button>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XHS-Ah-nL4">
-                                <rect key="frame" x="38" y="208" width="344" height="48"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" id="zM2-ZS-Wtb">
-                                    <font key="font" metaFont="system"/>
-                                    <string key="title">This is the name or address of the system on your local area network you wish to connect with. Examples are 192.168.1.140 or MyPrinter.local, etc.</string>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
                             <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bnr-M9-xyW">
-                                <rect key="frame" x="20" y="31" width="96" height="21"/>
+                                <rect key="frame" x="390" y="208" width="96" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="remote-port" drawsBackground="YES" id="SEL-zF-a8j">
                                     <font key="font" metaFont="system"/>
@@ -322,58 +284,126 @@
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                        </subviews>
-                    </view>
-                    <connections>
-                        <outlet property="remote_host" destination="s0Q-Kj-ZSN" id="rDe-SS-QNe"/>
-                        <outlet property="remote_port" destination="Bnr-M9-xyW" id="UOR-66-Fh1"/>
-                    </connections>
-                </viewController>
-                <customObject id="ngD-Zf-LGf" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
-            </objects>
-            <point key="canvasLocation" x="-255" y="-474"/>
-        </scene>
-        <!--Local Settings-->
-        <scene sceneID="Ng1-ww-myo">
-            <objects>
-                <customObject id="wIM-NW-X5Y" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
-                <viewController title="Local Settings" showSeguePresentationStyle="single" id="Ka9-zn-Aee" customClass="localtab" customModule="vpnextender" customModuleProvider="target" sceneMemberID="viewController">
-                    <view key="view" autoresizesSubviews="NO" id="dHZ-9n-CUh">
-                        <rect key="frame" x="0.0" y="0.0" width="400" height="300"/>
-                        <autoresizingMask key="autoresizingMask"/>
-                        <subviews>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="C0I-3e-qIP">
-                                <rect key="frame" x="18" y="264" width="199" height="16"/>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UBJ-OV-HDf">
+                                <rect key="frame" x="118" y="177" width="264" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Local port number" id="g5S-Sl-T6c">
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="remote-host" drawsBackground="YES" id="sNI-z7-SMh">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kTk-Fg-MAi">
+                                <rect key="frame" x="390" y="177" width="96" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="remote-port" drawsBackground="YES" id="tqO-u1-fLf">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Fcc-yb-qOE">
+                                <rect key="frame" x="20" y="177" width="90" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="local-port" drawsBackground="YES" id="al8-n2-Qi4">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="LYE-8E-5fZ">
+                                <rect key="frame" x="118" y="146" width="264" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="remote-host" drawsBackground="YES" id="8dB-uj-c8v">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H3f-ea-P6P">
+                                <rect key="frame" x="390" y="146" width="96" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="remote-port" drawsBackground="YES" id="H6g-Mr-1d1">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bqq-Bx-6D4">
+                                <rect key="frame" x="20" y="146" width="90" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="local-port" drawsBackground="YES" id="7fF-me-wN1">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="4fd-pi-4d4">
+                                <rect key="frame" x="118" y="115" width="264" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="remote-host" drawsBackground="YES" id="fkG-r6-wwF">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xmv-wl-l8j">
+                                <rect key="frame" x="20" y="115" width="90" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="local-port" drawsBackground="YES" id="yWA-cv-f6R">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Qp4-TI-f6M">
+                                <rect key="frame" x="18" y="290" width="456" height="96"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" id="mSO-TI-fab">
+                                    <font key="font" metaFont="system"/>
+                                    <string key="title">Connections: The local port is what you will connect to on your computer. The remote host and port is what the vpn extender will connect to on your local network when a connection is made to your local port.  Blank entries won't be used. You can duplicate entries to allow for more concurrent connections on a single port. Each entry allows up to 6 concurrent connections.</string>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sNW-df-rGv">
+                                <rect key="frame" x="20" y="253" width="92" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Local Port" id="STh-lN-ksH">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cjM-Aa-iew">
-                                <rect key="frame" x="38" y="53" width="338" height="203"/>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="lj8-GZ-zTV">
+                                <rect key="frame" x="390" y="115" width="96" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" id="VIN-Xi-4OJ">
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="remote-port" drawsBackground="YES" id="7WI-j9-S8t">
                                     <font key="font" metaFont="system"/>
-                                    <mutableString key="title">This is the port number you will use on your computer to connect to. Typically you will use a number between 50000 and 65000 but you can use anything above 1024 as a regular user. For example, you can use 2222 for ssh or 6631 for IPP as eay to remember numbers. If you picked 6631, your remote system will then be connectable as "localhost:6631" or "127.0.0.1:631". If your trying to ssh to your local system and picked 2222 for your local port you could then "ssh localhost 2222" and be connected to the actual local system at remote-host:remote-port you set up in Remote Settings.</mutableString>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="O5p-8i-DPE">
+                                <rect key="frame" x="118" y="253" width="266" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Remote Host or IP Address" id="ECk-wV-RJe">
+                                    <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="AKn-Zg-znX">
-                                <rect key="frame" x="311" y="17" width="75" height="32"/>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2vx-74-ldB">
+                                <rect key="frame" x="388" y="253" width="94" height="16"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <buttonCell key="cell" type="push" title="Apply" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Oq3-qG-fib">
-                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Remote Port" id="RTt-yh-QAC">
                                     <font key="font" metaFont="system"/>
-                                </buttonCell>
-                                <connections>
-                                    <action selector="onApply:" target="Ka9-zn-Aee" id="TlB-EY-7Am"/>
-                                </connections>
-                            </button>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
                             <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="AyJ-lB-5xN">
-                                <rect key="frame" x="20" y="24" width="96" height="21"/>
+                                <rect key="frame" x="20" y="208" width="90" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" title="local-port" drawsBackground="YES" id="TKQ-Vm-sUX">
                                     <font key="font" metaFont="system"/>
@@ -384,22 +414,157 @@
                         </subviews>
                     </view>
                     <connections>
+                        <outlet property="lport1" destination="AyJ-lB-5xN" id="T7u-65-L3r"/>
+                        <outlet property="lport2" destination="Fcc-yb-qOE" id="Nhw-cM-LVc"/>
+                        <outlet property="lport3" destination="Bqq-Bx-6D4" id="Om3-K7-DkO"/>
+                        <outlet property="lport4" destination="xmv-wl-l8j" id="UFA-re-eY8"/>
+                        <outlet property="remote_host" destination="s0Q-Kj-ZSN" id="rDe-SS-QNe"/>
+                        <outlet property="remote_port" destination="Bnr-M9-xyW" id="UOR-66-Fh1"/>
+                        <outlet property="rhost1" destination="s0Q-Kj-ZSN" id="gil-1b-xXW"/>
+                        <outlet property="rhost2" destination="UBJ-OV-HDf" id="7Vr-vl-LIx"/>
+                        <outlet property="rhost3" destination="LYE-8E-5fZ" id="bR6-2j-i2E"/>
+                        <outlet property="rhost4" destination="4fd-pi-4d4" id="poS-TD-Kz1"/>
+                        <outlet property="rport1" destination="Bnr-M9-xyW" id="q0l-Tz-Fec"/>
+                        <outlet property="rport2" destination="kTk-Fg-MAi" id="mZo-e1-oYM"/>
+                        <outlet property="rport3" destination="H3f-ea-P6P" id="Pas-nn-FDR"/>
+                        <outlet property="rport4" destination="lj8-GZ-zTV" id="8KE-Gs-fBt"/>
+                    </connections>
+                </viewController>
+                <customObject id="ngD-Zf-LGf" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-411" y="-500"/>
+        </scene>
+        <!--Settngs Help-->
+        <scene sceneID="Ng1-ww-myo">
+            <objects>
+                <customObject id="wIM-NW-X5Y" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+                <viewController title="Settngs Help" showSeguePresentationStyle="single" id="Ka9-zn-Aee" customClass="helptab" customModule="vpnextender" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" autoresizesSubviews="NO" id="dHZ-9n-CUh">
+                        <rect key="frame" x="0.0" y="0.0" width="500" height="400"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <subviews>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="C0I-3e-qIP">
+                                <rect key="frame" x="18" y="211" width="199" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Local port number" id="g5S-Sl-T6c">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XHS-Ah-nL4">
+                                <rect key="frame" x="18" y="322" width="464" height="42"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" id="zM2-ZS-Wtb">
+                                    <font key="font" metaFont="system"/>
+                                    <string key="title">This is the name or address of the system on your local area network you wish to connect with. Examples are 192.168.1.140 or MyPrinter.local, etc.</string>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MUb-xZ-RCD">
+                                <rect key="frame" x="18" y="372" width="228" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Remote host name or IP address" id="xIE-ap-PDw">
+                                    <font key="font" usesAppearanceFont="YES"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zl4-70-a1D">
+                                <rect key="frame" x="18" y="309" width="199" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Remote port number" id="ElM-xr-m1g">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ibI-Jv-oje">
+                                <rect key="frame" x="18" y="235" width="464" height="66"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" id="euQ-qz-fDM">
+                                    <font key="font" metaFont="system"/>
+                                    <string key="title">This is the port number the machine on your local network uses to communicate. For example a newer printer will use 631 and older printers might use 9100. For ssh to a local system use 22. To see the web page on a local systme use 80, etc. </string>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cjM-Aa-iew">
+                                <rect key="frame" x="18" y="59" width="470" height="144"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" id="VIN-Xi-4OJ">
+                                    <font key="font" metaFont="system"/>
+                                    <string key="title">This is the port number you will use on your computer to connect to. Typically you will use a number between 50000 and 65000 but you can use anything above 1024 as a regular user. For example, you can use 2222 for ssh or 6631 for IPP as eay to remember numbers. If you picked 6631, your remote system will then be connectable as "localhost:6631" or "127.0.0.1:631". If your trying to ssh to your local system and picked 2222 for your local port you could then "ssh localhost 2222" and be connected to the actual local system at remote-host:remote-port you set up in Remote Settings.</string>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                        </subviews>
+                    </view>
+                    <connections>
                         <outlet property="local_port" destination="AyJ-lB-5xN" id="gjr-ZS-976"/>
                     </connections>
                 </viewController>
             </objects>
-            <point key="canvasLocation" x="55" y="-104"/>
+            <point key="canvasLocation" x="174" y="-500"/>
         </scene>
         <!--Extender-->
         <scene sceneID="bW8-u5-H0o">
             <objects>
                 <viewController title="Extender" showSeguePresentationStyle="single" id="8CA-A2-xYj" customClass="extendertab" customModule="vpnextender" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" id="vcl-22-Zz1">
-                        <rect key="frame" x="0.0" y="0.0" width="400" height="300"/>
+                        <rect key="frame" x="0.0" y="0.0" width="500" height="400"/>
                         <autoresizingMask key="autoresizingMask"/>
                         <subviews>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KCY-oo-7Wa">
+                                <rect key="frame" x="18" y="361" width="122" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="WiFi Network" id="P5d-H8-AS6">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3bn-4x-AWV">
+                                <rect key="frame" x="18" y="332" width="122" height="16"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Password" id="Vaf-5E-yq6">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="TKT-Fc-WwZ">
+                                <rect key="frame" x="155" y="359" width="177" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="vyB-54-Cim">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField verticalHuggingPriority="750" fixedFrame="YES" contentType="password" translatesAutoresizingMaskIntoConstraints="NO" id="17m-v1-l6G">
+                                <rect key="frame" x="155" y="330" width="177" height="21"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="4s1-4k-Gow">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mb9-px-uCn">
+                                <rect key="frame" x="20" y="203" width="471" height="106"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                <textFieldCell key="cell" id="rHc-1S-TY8">
+                                    <font key="font" metaFont="system"/>
+                                    <string key="title">Select the local WiFi network you want the extender device to connect to. Applying this setting will restart the extender which will take a minute.</string>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
                             <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9P8-im-nC8">
-                                <rect key="frame" x="309" y="10" width="75" height="32"/>
+                                <rect key="frame" x="411" y="13" width="75" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                 <buttonCell key="cell" type="push" title="Apply" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="LO2-dy-iJn">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -409,52 +574,6 @@
                                     <action selector="onApply:" target="8CA-A2-xYj" id="Gfk-kr-Uao"/>
                                 </connections>
                             </button>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KCY-oo-7Wa">
-                                <rect key="frame" x="18" y="261" width="122" height="16"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="WiFi Network" id="P5d-H8-AS6">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3bn-4x-AWV">
-                                <rect key="frame" x="18" y="232" width="122" height="16"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Password" id="Vaf-5E-yq6">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="TKT-Fc-WwZ">
-                                <rect key="frame" x="155" y="259" width="177" height="21"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="vyB-54-Cim">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField verticalHuggingPriority="750" fixedFrame="YES" contentType="password" translatesAutoresizingMaskIntoConstraints="NO" id="17m-v1-l6G">
-                                <rect key="frame" x="155" y="230" width="177" height="21"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" id="4s1-4k-Gow">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mb9-px-uCn">
-                                <rect key="frame" x="20" y="103" width="360" height="106"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <textFieldCell key="cell" id="rHc-1S-TY8">
-                                    <font key="font" metaFont="system"/>
-                                    <string key="title">Select the local WiFi network you want the extender device to connect to. Applying this setting will restart the extender which will take a minute.</string>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
                         </subviews>
                     </view>
                     <connections>
@@ -464,28 +583,28 @@
                 </viewController>
                 <customObject id="Zgg-Wz-0Qb" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="18" y="265"/>
+            <point key="canvasLocation" x="74" y="7"/>
         </scene>
         <!--Status-->
         <scene sceneID="coz-P3-AIi">
             <objects>
                 <viewController title="Status" showSeguePresentationStyle="single" id="JHL-KT-hiU" customClass="statstab" customModule="vpnextender" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" autoresizesSubviews="NO" translatesAutoresizingMaskIntoConstraints="NO" id="V1G-xv-Zh6">
-                        <rect key="frame" x="0.0" y="0.0" width="400" height="300"/>
+                        <rect key="frame" x="0.0" y="0.0" width="500" height="400"/>
                         <subviews>
                             <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" translatesAutoresizingMaskIntoConstraints="NO" id="HiX-sg-K9e">
-                                <rect key="frame" x="20" y="20" width="366" height="184"/>
+                                <rect key="frame" x="20" y="20" width="460" height="284"/>
                                 <clipView key="contentView" drawsBackground="NO" copiesOnScroll="NO" id="uTg-X0-4bI">
-                                    <rect key="frame" x="0.0" y="0.0" width="351" height="184"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="445" height="284"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <textView importsGraphics="NO" richText="NO" verticallyResizable="NO" findStyle="bar" spellingCorrection="YES" smartInsertDelete="YES" id="C25-rd-2TX">
-                                            <rect key="frame" x="0.0" y="0.0" width="351" height="184"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="445" height="284"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                            <size key="minSize" width="350" height="184"/>
-                                            <size key="maxSize" width="351" height="184"/>
+                                            <size key="minSize" width="445" height="284"/>
+                                            <size key="maxSize" width="466" height="284"/>
                                             <color key="insertionPointColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                         </textView>
                                     </subviews>
@@ -495,20 +614,21 @@
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
                                 <scroller key="verticalScroller" verticalHuggingPriority="750" horizontal="NO" id="y7x-RH-w8w">
-                                    <rect key="frame" x="351" y="0.0" width="15" height="184"/>
+                                    <rect key="frame" x="445" y="0.0" width="15" height="284"/>
                                     <autoresizingMask key="autoresizingMask"/>
                                 </scroller>
                             </scrollView>
                             <comboBox verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="mDj-Zf-fo3">
-                                <rect key="frame" x="115" y="214" width="123" height="25"/>
+                                <rect key="frame" x="115" y="314" width="123" height="25"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="120" id="8Ej-2q-jUE"/>
                                 </constraints>
-                                <comboBoxCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" completes="NO" numberOfVisibleItems="5" id="OZA-PI-TV1">
+                                <comboBoxCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" borderStyle="bezel" drawsBackground="YES" completes="NO" numberOfVisibleItems="6" id="OZA-PI-TV1">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                     <objectValues>
+                                        <string>Errors</string>
                                         <string>Basic</string>
                                         <string>Basic+</string>
                                         <string>Moderate</string>
@@ -521,7 +641,7 @@
                                 </connections>
                             </comboBox>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="57v-wB-EyS">
-                                <rect key="frame" x="18" y="220" width="88" height="16"/>
+                                <rect key="frame" x="18" y="320" width="88" height="16"/>
                                 <textFieldCell key="cell" lineBreakMode="clipping" title="Logging Level" id="Mrd-Jy-O4M">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -529,7 +649,7 @@
                                 </textFieldCell>
                             </textField>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="DZJ-4J-rK3">
-                                <rect key="frame" x="18" y="246" width="93" height="16"/>
+                                <rect key="frame" x="18" y="346" width="93" height="16"/>
                                 <textFieldCell key="cell" lineBreakMode="clipping" title="Remote Status" id="mg4-sL-pcN">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -537,7 +657,7 @@
                                 </textFieldCell>
                             </textField>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="AMk-2T-5BU">
-                                <rect key="frame" x="18" y="270" width="98" height="16"/>
+                                <rect key="frame" x="18" y="370" width="98" height="16"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="94" id="hNo-9f-dFt"/>
                                 </constraints>
@@ -548,7 +668,7 @@
                                 </textFieldCell>
                             </textField>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Bez-T7-V4D">
-                                <rect key="frame" x="113" y="246" width="98" height="16"/>
+                                <rect key="frame" x="113" y="346" width="98" height="16"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="94" id="R73-12-rwD"/>
                                 </constraints>
@@ -558,59 +678,25 @@
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LOj-QZ-Mhm">
-                                <rect key="frame" x="273" y="246" width="33" height="16"/>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Tx" id="qFX-M5-i3u">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="phZ-8w-hqg">
-                                <rect key="frame" x="273" y="222" width="33" height="16"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="29" id="hLJ-38-UWZ"/>
-                                </constraints>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Rx" id="byh-aE-pKU">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="yvl-BG-QXh">
-                                <rect key="frame" x="304" y="246" width="94" height="16"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="90" id="PbD-g3-Hbo"/>
-                                </constraints>
+                                <rect key="frame" x="401" y="346" width="81" height="16"/>
                                 <textFieldCell key="cell" lineBreakMode="clipping" title="Tx Count" id="6nH-Q7-HnI">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="PQE-qV-6SJ">
-                                <rect key="frame" x="304" y="222" width="78" height="16"/>
-                                <constraints>
-                                    <constraint firstAttribute="width" constant="74" id="N4G-l3-YmV"/>
-                                </constraints>
-                                <textFieldCell key="cell" lineBreakMode="clipping" title="Rx Count" id="dOb-6k-y9z">
-                                    <font key="font" metaFont="system"/>
-                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                </textFieldCell>
-                            </textField>
                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="zrx-t8-u8e">
-                                <rect key="frame" x="113" y="270" width="76" height="16"/>
+                                <rect key="frame" x="113" y="370" width="76" height="16"/>
                                 <textFieldCell key="cell" lineBreakMode="clipping" title="local-status" id="jjQ-7Y-QSB">
                                     <font key="font" metaFont="system"/>
                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                            <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KKS-cM-VE1">
-                                <rect key="frame" x="310" y="260" width="72" height="32"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                <buttonCell key="cell" type="push" title="Clear" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="duU-3I-gXz">
+                            <button verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="KKS-cM-VE1">
+                                <rect key="frame" x="255" y="310" width="98" height="32"/>
+                                <buttonCell key="cell" type="push" title="Clear Log" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="duU-3I-gXz">
                                     <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
@@ -618,35 +704,51 @@
                                     <action selector="onClear:" target="JHL-KT-hiU" id="7cG-uo-YRm"/>
                                 </connections>
                             </button>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="PQE-qV-6SJ">
+                                <rect key="frame" x="401" y="322" width="81" height="16"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Rx Count" id="dOb-6k-y9z">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
+                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LOj-QZ-Mhm">
+                                <rect key="frame" x="401" y="370" width="81" height="16"/>
+                                <textFieldCell key="cell" lineBreakMode="clipping" title="Data  Tx / Rx" id="qFX-M5-i3u">
+                                    <font key="font" metaFont="system"/>
+                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                </textFieldCell>
+                            </textField>
                         </subviews>
                         <constraints>
                             <constraint firstItem="HiX-sg-K9e" firstAttribute="top" secondItem="PQE-qV-6SJ" secondAttribute="bottom" constant="18" id="0RX-VV-taa"/>
                             <constraint firstItem="Bez-T7-V4D" firstAttribute="top" secondItem="V1G-xv-Zh6" secondAttribute="top" constant="38" id="4Je-Tg-bxk"/>
+                            <constraint firstItem="PQE-qV-6SJ" firstAttribute="leading" secondItem="LOj-QZ-Mhm" secondAttribute="leading" id="55h-BK-6hE"/>
                             <constraint firstAttribute="bottom" secondItem="HiX-sg-K9e" secondAttribute="bottom" constant="20" symbolic="YES" id="5rV-f1-e8e"/>
                             <constraint firstItem="AMk-2T-5BU" firstAttribute="leading" secondItem="DZJ-4J-rK3" secondAttribute="leading" id="8m1-ng-jVm"/>
                             <constraint firstItem="PQE-qV-6SJ" firstAttribute="leading" secondItem="yvl-BG-QXh" secondAttribute="leading" id="F3U-Bg-hbq"/>
-                            <constraint firstItem="LOj-QZ-Mhm" firstAttribute="leading" secondItem="Bez-T7-V4D" secondAttribute="trailing" constant="66" id="LlX-gC-JXe"/>
+                            <constraint firstItem="LOj-QZ-Mhm" firstAttribute="trailing" secondItem="yvl-BG-QXh" secondAttribute="trailing" id="NJP-Fc-Hk4"/>
                             <constraint firstItem="Bez-T7-V4D" firstAttribute="top" secondItem="zrx-t8-u8e" secondAttribute="bottom" constant="8" symbolic="YES" id="O7o-T9-a9h"/>
-                            <constraint firstItem="phZ-8w-hqg" firstAttribute="baseline" secondItem="PQE-qV-6SJ" secondAttribute="firstBaseline" id="Quq-s4-QsI"/>
+                            <constraint firstItem="LOj-QZ-Mhm" firstAttribute="baseline" secondItem="zrx-t8-u8e" secondAttribute="baseline" id="PoY-XE-M2T"/>
+                            <constraint firstItem="PQE-qV-6SJ" firstAttribute="top" secondItem="yvl-BG-QXh" secondAttribute="bottom" constant="8" symbolic="YES" id="QKp-fL-CMA"/>
                             <constraint firstItem="Bez-T7-V4D" firstAttribute="baseline" secondItem="yvl-BG-QXh" secondAttribute="baseline" id="UTa-FW-D8m"/>
-                            <constraint firstItem="Bez-T7-V4D" firstAttribute="baseline" secondItem="LOj-QZ-Mhm" secondAttribute="baseline" id="Ufd-N7-e7I"/>
+                            <constraint firstAttribute="trailing" secondItem="HiX-sg-K9e" secondAttribute="trailing" constant="20" symbolic="YES" id="VrF-oK-kWk"/>
                             <constraint firstItem="AMk-2T-5BU" firstAttribute="leading" secondItem="HiX-sg-K9e" secondAttribute="leading" id="Wvj-qK-c4e"/>
                             <constraint firstItem="Bez-T7-V4D" firstAttribute="leading" secondItem="zrx-t8-u8e" secondAttribute="leading" id="XdA-FR-bcK"/>
+                            <constraint firstItem="LOj-QZ-Mhm" firstAttribute="trailing" secondItem="HiX-sg-K9e" secondAttribute="trailing" id="Zpe-2A-YG7"/>
                             <constraint firstItem="mDj-Zf-fo3" firstAttribute="top" secondItem="Bez-T7-V4D" secondAttribute="bottom" constant="9" id="b2v-O9-94d"/>
-                            <constraint firstItem="phZ-8w-hqg" firstAttribute="top" secondItem="LOj-QZ-Mhm" secondAttribute="bottom" constant="8" symbolic="YES" id="dKT-P1-HmB"/>
+                            <constraint firstItem="PQE-qV-6SJ" firstAttribute="leading" secondItem="KKS-cM-VE1" secondAttribute="trailing" constant="43" id="enc-ca-cK4"/>
                             <constraint firstItem="Bez-T7-V4D" firstAttribute="leading" secondItem="DZJ-4J-rK3" secondAttribute="trailing" constant="6" id="f4d-rz-yZG"/>
                             <constraint firstItem="AMk-2T-5BU" firstAttribute="leading" secondItem="57v-wB-EyS" secondAttribute="leading" id="fUU-W5-VdI"/>
-                            <constraint firstItem="HiX-sg-K9e" firstAttribute="top" secondItem="phZ-8w-hqg" secondAttribute="bottom" constant="18" id="hCU-Mf-fFf"/>
+                            <constraint firstItem="LOj-QZ-Mhm" firstAttribute="trailing" secondItem="PQE-qV-6SJ" secondAttribute="trailing" id="g1x-3I-qpU"/>
                             <constraint firstItem="57v-wB-EyS" firstAttribute="baseline" secondItem="mDj-Zf-fo3" secondAttribute="baseline" id="hLb-Tv-Ets"/>
-                            <constraint firstItem="phZ-8w-hqg" firstAttribute="trailing" secondItem="LOj-QZ-Mhm" secondAttribute="trailing" id="knC-ec-vDn"/>
                             <constraint firstItem="Bez-T7-V4D" firstAttribute="leading" secondItem="mDj-Zf-fo3" secondAttribute="leading" id="mo0-Ys-V7w"/>
                             <constraint firstItem="Bez-T7-V4D" firstAttribute="leading" secondItem="V1G-xv-Zh6" secondAttribute="leading" constant="115" id="pRK-8j-W4y"/>
-                            <constraint firstAttribute="trailing" secondItem="HiX-sg-K9e" secondAttribute="trailing" constant="14" id="pUi-8R-4zk"/>
-                            <constraint firstAttribute="trailing" secondItem="PQE-qV-6SJ" secondAttribute="trailing" constant="20" symbolic="YES" id="s0A-QC-dco"/>
+                            <constraint firstItem="PQE-qV-6SJ" firstAttribute="top" secondItem="KKS-cM-VE1" secondAttribute="top" id="rml-2u-AnR"/>
                             <constraint firstItem="mDj-Zf-fo3" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="57v-wB-EyS" secondAttribute="trailing" constant="8" symbolic="YES" id="sLk-Dv-xw7"/>
                             <constraint firstItem="Bez-T7-V4D" firstAttribute="baseline" secondItem="DZJ-4J-rK3" secondAttribute="baseline" id="uVf-sH-9Bg"/>
                             <constraint firstItem="AMk-2T-5BU" firstAttribute="baseline" secondItem="zrx-t8-u8e" secondAttribute="baseline" id="wWS-bj-FT6"/>
-                            <constraint firstItem="phZ-8w-hqg" firstAttribute="leading" secondItem="LOj-QZ-Mhm" secondAttribute="leading" id="zN4-iJ-IcY"/>
                         </constraints>
                     </view>
                     <connections>
@@ -660,7 +762,7 @@
                 </viewController>
                 <customObject id="oQS-hK-sN4" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-429" y="265"/>
+            <point key="canvasLocation" x="-454" y="14"/>
         </scene>
     </scenes>
 </document>

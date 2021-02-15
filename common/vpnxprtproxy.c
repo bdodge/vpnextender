@@ -1445,6 +1445,13 @@ void SignalHandler(int sigraised)
     exit(0);
 }
 
+static const char *s_extender_status;
+
+const char *vpnx_extender_status(void)
+{
+    return s_extender_status ? s_extender_status : "Not Initialized";
+}
+
 #ifndef VPNX_GUI
 
 // VPNPRTPROXY is being built for command-line / console use
@@ -1536,6 +1543,8 @@ int main(int argc, const char *argv[])
 	lp_conns = 0;
 	host_conns = 0;
 	
+    s_extender_status = "Initializing";
+    
     vpnx_set_log_level(loglevel);
     
     while (argc > 0 && ! result)
@@ -1743,6 +1752,7 @@ int main(int argc, const char *argv[])
 
     // setup
     //
+    s_extender_status = "Looking for extender device";
     result = 0;
     
     do //try
@@ -1787,6 +1797,7 @@ int main(int argc, const char *argv[])
     {
         // run the main loop
         //
+        s_extender_status = "Running";
         vpnx_run_loop();
     }
     if (gusb_device)
@@ -1824,6 +1835,8 @@ int vpnx_gui_init(
     int i;
     int j;
 
+    s_extender_status = "Initializing";
+
     for (i = 0; i < VPNX_MAX_PORTS; i++)
     {
         strncpy(&x_remote_hosts[i][0], remote_hosts, VPNX_MAX_HOST - 1);
@@ -1848,6 +1861,7 @@ int vpnx_gui_init(
     x_pid = pid;
     x_mode = isserver ? VPNX_SERVER : VPNX_CLIENT;
     
+    s_extender_status = "Looking for extender device";
     gusb_device = NULL;
     g_state = gsInit;
     
@@ -1893,6 +1907,7 @@ int vpnx_gui_slice(void)
             // wait for usb device to be found
             if (gusb_device)
             {
+                s_extender_status = "Running";
                 g_state = gsUsbOpened;
             }
             break;

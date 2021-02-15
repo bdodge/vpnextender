@@ -8,8 +8,18 @@
 import Cocoa
 
 class remotetab: NSViewController, NSTextFieldDelegate {
-    @IBOutlet weak var remote_host: NSTextField!
-    @IBOutlet weak var remote_port: NSTextField!
+    @IBOutlet weak var lport1: NSTextField!
+    @IBOutlet weak var lport2: NSTextField!
+    @IBOutlet weak var lport3: NSTextField!
+    @IBOutlet weak var lport4: NSTextField!
+    @IBOutlet weak var rhost1: NSTextField!
+    @IBOutlet weak var rhost2: NSTextField!
+    @IBOutlet weak var rhost3: NSTextField!
+    @IBOutlet weak var rhost4: NSTextField!
+    @IBOutlet weak var rport1: NSTextField!
+    @IBOutlet weak var rport2: NSTextField!
+    @IBOutlet weak var rport3: NSTextField!
+    @IBOutlet weak var rport4: NSTextField!
     
     var myParent:ViewController? = nil
     
@@ -17,14 +27,34 @@ class remotetab: NSViewController, NSTextFieldDelegate {
         super.viewDidLoad()
         myParent = parent! as? ViewController
         
-        remote_host.delegate = self
-        remote_port.delegate = self
+        lport1.delegate = self
+        rport1.delegate = self
+        rhost1.delegate = self
+        lport2.delegate = self
+        rport2.delegate = self
+        rhost2.delegate = self
+        lport3.delegate = self
+        rport3.delegate = self
+        rhost3.delegate = self
+        lport4.delegate = self
+        rport4.delegate = self
+        rhost4.delegate = self
     }
     
     override func viewWillAppear() {
         if (myParent != nil) {
-           remote_host.stringValue = myParent!.def_remote_host
-           remote_port.stringValue = String(myParent!.def_remote_port)
+            rhost1.stringValue = myParent!.def_remote_host[0]
+            lport1.stringValue = String(myParent!.def_remote_port[0])
+            rport1.stringValue = String(myParent!.def_remote_port[0])
+            rhost2.stringValue = myParent!.def_remote_host[1]
+            lport2.stringValue = String(myParent!.def_remote_port[1])
+            rport2.stringValue = String(myParent!.def_remote_port[1])
+            rhost3.stringValue = myParent!.def_remote_host[2]
+            lport3.stringValue = String(myParent!.def_remote_port[2])
+            rport3.stringValue = String(myParent!.def_remote_port[2])
+            rhost4.stringValue = myParent!.def_remote_host[3]
+            lport4.stringValue = String(myParent!.def_remote_port[3])
+            rport4.stringValue = String(myParent!.def_remote_port[3])
        }
     }
 
@@ -69,20 +99,98 @@ class remotetab: NSViewController, NSTextFieldDelegate {
     }
     
     func controlTextDidChange(_ obj: Notification) {
-        if let textField = obj.object as? NSTextField, self.remote_port.identifier == textField.identifier {
+        if let textField = obj.object as? NSTextField, self.rport1.identifier == textField.identifier {
             let newtext = textField.stringValue;
             let cleantext = scrubPort(newtext)
             if (cleantext != newtext) {
-                remote_port.stringValue = cleantext
+                rport1.stringValue = cleantext
+            }
+        }
+        else if let textField = obj.object as? NSTextField, self.rport2.identifier == textField.identifier {
+            let newtext = textField.stringValue;
+            let cleantext = scrubPort(newtext)
+            if (cleantext != newtext) {
+                rport2.stringValue = cleantext
+            }
+        }
+        else if let textField = obj.object as? NSTextField, self.rport3.identifier == textField.identifier {
+            let newtext = textField.stringValue;
+            let cleantext = scrubPort(newtext)
+            if (cleantext != newtext) {
+                rport3.stringValue = cleantext
+            }
+        }
+        else if let textField = obj.object as? NSTextField, self.rport4.identifier == textField.identifier {
+            let newtext = textField.stringValue;
+            let cleantext = scrubPort(newtext)
+            if (cleantext != newtext) {
+                rport4.stringValue = cleantext
+            }
+        }
+        
+        if let textField = obj.object as? NSTextField, self.lport1.identifier == textField.identifier {
+            let newtext = textField.stringValue;
+            let cleantext = scrubPort(newtext)
+            if (cleantext != newtext) {
+                lport1.stringValue = cleantext
+            }
+        }
+        else if let textField = obj.object as? NSTextField, self.lport2.identifier == textField.identifier {
+            let newtext = textField.stringValue;
+            let cleantext = scrubPort(newtext)
+            if (cleantext != newtext) {
+                lport2.stringValue = cleantext
+            }
+        }
+        else if let textField = obj.object as? NSTextField, self.lport3.identifier == textField.identifier {
+            let newtext = textField.stringValue;
+            let cleantext = scrubPort(newtext)
+            if (cleantext != newtext) {
+                lport3.stringValue = cleantext
+            }
+        }
+        else if let textField = obj.object as? NSTextField, self.lport4.identifier == textField.identifier {
+            let newtext = textField.stringValue;
+            let cleantext = scrubPort(newtext)
+            if (cleantext != newtext) {
+                lport4.stringValue = cleantext
             }
         }
     }
 
    @IBAction func onApply(_ sender: Any) {
-        myParent?.def_remote_host = remote_host.stringValue
-        if let portno = UInt16(remote_port.stringValue) {
-            myParent?.def_remote_port = portno;
+        myParent?.def_remote_host[0] = rhost1.stringValue
+        if let portno = UInt16(rport1.stringValue) {
+            myParent?.def_remote_port[0] = portno;
         }
+        if let portno = UInt16(lport1.stringValue) {
+            myParent?.def_local_port[0] = portno;
+        }
+    
+        myParent?.def_remote_host[1] = rhost2.stringValue
+        if let portno = UInt16(rport2.stringValue) {
+            myParent?.def_remote_port[1] = portno;
+        }
+        if let portno = UInt16(lport2.stringValue) {
+            myParent?.def_local_port[1] = portno;
+        }
+
+        myParent?.def_remote_host[2] = rhost3.stringValue
+        if let portno = UInt16(rport3.stringValue) {
+            myParent?.def_remote_port[2] = portno;
+        }
+        if let portno = UInt16(lport3.stringValue) {
+            myParent?.def_local_port[2] = portno;
+        }
+
+        myParent?.def_remote_host[3] = rhost4.stringValue
+        if let portno = UInt16(rport4.stringValue) {
+            myParent?.def_remote_port[3] = portno;
+        }
+        if let portno = UInt16(lport4.stringValue) {
+            myParent?.def_local_port[3] = portno;
+        }
+
         myParent?.StoreSettings()
     }
 }

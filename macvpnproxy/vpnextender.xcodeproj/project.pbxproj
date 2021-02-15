@@ -15,7 +15,7 @@
 		B011D74625BE0EEF005496A4 /* vpnxtcp.c in Sources */ = {isa = PBXBuildFile; fileRef = B011D74125BE0EEF005496A4 /* vpnxtcp.c */; };
 		B011D74725BE0EEF005496A4 /* vpnxprtproxy.c in Sources */ = {isa = PBXBuildFile; fileRef = B011D74225BE0EEF005496A4 /* vpnxprtproxy.c */; };
 		B072819225C707D600466082 /* remotetab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B072819025C707D600466082 /* remotetab.swift */; };
-		B072819725C707EE00466082 /* localtab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B072819525C707EE00466082 /* localtab.swift */; };
+		B072819725C707EE00466082 /* helptab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B072819525C707EE00466082 /* helptab.swift */; };
 		B072819C25C7080000466082 /* statstab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B072819A25C7080000466082 /* statstab.swift */; };
 		B07281AC25C72FAD00466082 /* advancedtab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07281AB25C72FAD00466082 /* advancedtab.swift */; };
 		B07281B025C83B3300466082 /* extendertab.swift in Sources */ = {isa = PBXBuildFile; fileRef = B07281AF25C83B3300466082 /* extendertab.swift */; };
@@ -36,7 +36,7 @@
 		B011D74B25BE13BF005496A4 /* vpnextender.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vpnextender.h; path = ../../common/vpnextender.h; sourceTree = "<group>"; };
 		B011D74C25BE13BF005496A4 /* vpnxtcp.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vpnxtcp.h; path = ../../common/vpnxtcp.h; sourceTree = "<group>"; };
 		B072819025C707D600466082 /* remotetab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = remotetab.swift; sourceTree = "<group>"; };
-		B072819525C707EE00466082 /* localtab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = localtab.swift; sourceTree = "<group>"; };
+		B072819525C707EE00466082 /* helptab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = helptab.swift; sourceTree = "<group>"; };
 		B072819A25C7080000466082 /* statstab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = statstab.swift; sourceTree = "<group>"; };
 		B07281AB25C72FAD00466082 /* advancedtab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = advancedtab.swift; sourceTree = "<group>"; };
 		B07281AF25C83B3300466082 /* extendertab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = extendertab.swift; sourceTree = "<group>"; };
@@ -77,7 +77,7 @@
 				B011D74025BE0EEF005496A4 /* vpnextender.c */,
 				B072819A25C7080000466082 /* statstab.swift */,
 				B072819025C707D600466082 /* remotetab.swift */,
-				B072819525C707EE00466082 /* localtab.swift */,
+				B072819525C707EE00466082 /* helptab.swift */,
 				B07281AF25C83B3300466082 /* extendertab.swift */,
 				B07281AB25C72FAD00466082 /* advancedtab.swift */,
 				B011D74225BE0EEF005496A4 /* vpnxprtproxy.c */,
@@ -164,7 +164,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B011D72F25BE04E9005496A4 /* ViewController.swift in Sources */,
-				B072819725C707EE00466082 /* localtab.swift in Sources */,
+				B072819725C707EE00466082 /* helptab.swift in Sources */,
 				B011D74725BE0EEF005496A4 /* vpnxprtproxy.c in Sources */,
 				B011D74625BE0EEF005496A4 /* vpnxtcp.c in Sources */,
 				B07281AC25C72FAD00466082 /* advancedtab.swift in Sources */,

@@ -70,6 +70,25 @@ static int s_last_conn;
 ///
 static int s_mode;
 
+static uint32_t s_tx_count;
+static uint32_t s_rx_count;
+static const char *s_local_status;
+
+uint32_t vpnx_xfer_tx_count(void)
+{
+    return s_tx_count;
+}
+
+uint32_t vpnx_xfer_rx_count(void)
+{
+    return s_rx_count;
+}
+
+const char *vpnx_local_status(void)
+{
+    return s_local_status ? s_local_status : "Not Initialized";
+}
+
 /// log level, 0 = errors only, up to 5 = verbose
 ///
 static int s_log_level;
@@ -570,6 +589,7 @@ int vpnx_run_loop_slice()
                 vpnx_log(1, "Dropping data packet with bad length %d\n", io_from_usb->count);
                 io_from_usb = NULL;
             }
+            s_rx_count += io_from_usb->count;
             io_to_tcp = io_from_usb;
             break;
         case VPNX_USBT_PING:
@@ -767,6 +787,7 @@ int vpnx_run_loop_slice()
         else if (s_cons[c].tcp_sockets[slot] != INVALID_SOCKET)
         {
             vpnx_dump_packet("TCP Tx", io_to_tcp, 3);
+            s_tx_count += io_to_tcp->count;
             result = tcp_write(s_cons[c].tcp_sockets[slot], io_to_tcp);
             if (result != 0)
             {
@@ -950,6 +971,10 @@ int vpnx_run_loop_init(
     s_mode = mode;
     s_usb_device = usb_device;
 
+    s_local_status = "Starting";
+    s_tx_count = 0;
+    s_rx_count = 0;
+    
     for (c = 0, numactive = 0; c < VPNX_MAX_PORTS; c++)
     {
         // this is restartable, so make sure we're cleaned up
@@ -996,6 +1021,7 @@ int vpnx_run_loop_init(
             }
         }
     }
+    s_local_status = "Running";
     return (numactive > 0) ? 0 : -1;
 }
 
