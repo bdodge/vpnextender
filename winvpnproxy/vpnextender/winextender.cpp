@@ -25,6 +25,8 @@ static uint16_t local_ports[VPNX_MAX_PORTS];
 static int def_log_level;
 static uint16_t def_vid;
 static uint16_t def_pid;
+static TCHAR netname[VPNX_MAX_HOST];
+static TCHAR netpass[VPNX_MAX_HOST];
 
 static HKEY g_hKey;
 static HWND g_hLogWindow;
@@ -62,6 +64,7 @@ static void SetStringSetting(LPCTSTR name, int index, LPTSTR value)
     HKEY hKey;
     int  err;
 
+    keyname[0] = '\0';
     _sntprintf(keyname, _countof(keyname), _T("%u"), index);
 
     err = RegCreateKey(g_hKey, name, &hKey);
@@ -77,6 +80,7 @@ static void SetPortSetting(LPCTSTR name, int index, uint16_t value)
     int  err;
     DWORD val = (DWORD)value;
 
+    keyname[0] = '\0';
     _sntprintf(keyname, _countof(keyname), _T("%u"), index);
 
     err = RegCreateKey(g_hKey, name, &hKey);
@@ -95,6 +99,7 @@ static void GetStringSetting(LPCTSTR name, int index, LPTSTR value, LPCTSTR defa
 
     _tcsncpy(value, default_value, VPNX_MAX_HOST);
 
+    keyname[0] = '\0';
     _sntprintf(keyname, _countof(keyname), _T("%u"), index);
 
     err = RegCreateKey(g_hKey, name, &hKey);
@@ -170,6 +175,8 @@ void RestoreSettings(void)
             GetPortSetting(_T("Remote Port"), i, &remote_ports[i], 0);
             GetPortSetting(_T("Local Port"), i, &local_ports[i], 0);
         }
+        GetStringSetting(_T("Network"), 0, netname, _T(""));
+        GetStringSetting(_T("Password"), 0, netpass, _T(""));
         CloseSettings();
     }
 }
@@ -186,6 +193,8 @@ void SaveSettings(void)
             SetPortSetting(_T("Remote Port"), i, remote_ports[i]);
             SetPortSetting(_T("Local Port"), i, local_ports[i]);
         }
+        SetStringSetting(_T("Network"), 0, netname);
+        SetStringSetting(_T("Password"), 0, netpass);
         CloseSettings();
     }
 }
@@ -353,6 +362,7 @@ INT_PTR CALLBACK LoggingProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
     case WM_TIMER:
     {
         char bytes[256];
+        TCHAR nstr[32];
 
         do
         {
@@ -373,10 +383,83 @@ INT_PTR CALLBACK LoggingProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
             }
         }
         while (bytes[0] != '\0');
+
+        _sntprintf(nstr, _countof(nstr), _T("%u"), vpnx_xfer_tx_count());
+        SetDlgItemText(hDlg, IDC_XFERTX, nstr);
+        _sntprintf(nstr, _countof(nstr), _T("%u"), vpnx_xfer_rx_count());
+        SetDlgItemText(hDlg, IDC_XFERRX, nstr);
+
+#ifdef UNICODE
+        TCHAR statuni[256];
+        const char* statstr;
+        int len;
+
+        statstr = vpnx_local_status();
+        len = strlen(statstr);
+
+        len = MultiByteToWideChar(CP_UTF8, 0, statstr, len, statuni, _countof(statuni));
+        statuni[len] = _T('\0');
+        SetDlgItemText(hDlg, IDC_LOCALSTATUS, statuni);
+
+        statstr = vpnx_extender_status();
+        len = strlen(statstr);
+
+        len = MultiByteToWideChar(CP_UTF8, 0, statstr, len, statuni, _countof(statuni));
+        statuni[len] = _T('\0');
+        SetDlgItemText(hDlg, IDC_EXTENDERSTATUS, statuni);
+#else
+        SetDlgItemText(hDlg, IDC_LOCALSTATUS, vpnx_local_status());
+        SetDlgItemText(hDlg, IDC_EXTENDERSTATUS, vpnx_extender_status());
+#endif
         break;
     }
     case WM_DESTROY:
         g_hLogWindow = NULL;
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK ExtenderProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        SetDlgItemText(hDlg, IDC_WIFINET, netname);
+        SetDlgItemText(hDlg, IDC_WIFIPASS, netpass);
+        break;
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDOK:
+            GetDlgItemText(hDlg, IDC_WIFINET, netname, _countof(netname));
+            GetDlgItemText(hDlg, IDC_WIFIPASS, netpass, _countof(netpass));
+            SaveSettings();
+#ifdef UNICODE
+            {
+                char netstr[VPNX_MAX_HOST];
+                char passstr[VPNX_MAX_HOST];
+                int inlen = _tcslen(netname);
+                int len = WideCharToMultiByte(CP_UTF8, 0, netname, inlen, netstr, sizeof(netstr), NULL, NULL);
+                netstr[len] = '\0';
+
+                inlen = _tcslen(netpass);
+                len = WideCharToMultiByte(CP_UTF8, 0, netpass, inlen, passstr, sizeof(passstr), NULL, NULL);
+                passstr[len] = '\0';
+                vpnx_set_network(netstr, passstr);
+            }
+#else
+            vpnx_set_network(netname, netpass);
+#endif
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case IDCANCEL:
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        case IDC_RESTART_EXTENDER:
+            vpnx_reboot_extender();
+            break;
+        }
         break;
     }
     return (INT_PTR)FALSE;
@@ -486,6 +569,10 @@ LRESULT CALLBACK VpnxProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
         case ID_POPUP_SETTINGS:
             DialogBox(g_hInstance, MAKEINTRESOURCE(IDD_SETTINGS), hWnd, SettingsProc);
+            break;
+        case ID_POPUP_EXTENDER:
+            hDlg = CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_EXTENDER), hWnd, ExtenderProc);
+            ShowWindow(hDlg, SW_SHOW);
             break;
         case ID_POPUP_LOGGING:
             hDlg = CreateDialog(g_hInstance, MAKEINTRESOURCE(IDD_LOGGING), hWnd, LoggingProc);
@@ -642,7 +729,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
     }
     // start a slow timer for main window to allow polling for usb device every 1/2 second
     //
-    SetTimer(hWnd, 0xB00BFACE, 5000, NULL);
+    SetTimer(hWnd, 0xB00BFACE, 500, NULL);
 
     return TRUE;
 }
