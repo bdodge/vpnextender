@@ -44,16 +44,16 @@ class remotetab: NSViewController, NSTextFieldDelegate {
     override func viewWillAppear() {
         if (myParent != nil) {
             rhost1.stringValue = myParent!.def_remote_host[0]
-            lport1.stringValue = String(myParent!.def_remote_port[0])
+            lport1.stringValue = String(myParent!.def_local_port[0])
             rport1.stringValue = String(myParent!.def_remote_port[0])
             rhost2.stringValue = myParent!.def_remote_host[1]
-            lport2.stringValue = String(myParent!.def_remote_port[1])
+            lport2.stringValue = String(myParent!.def_local_port[1])
             rport2.stringValue = String(myParent!.def_remote_port[1])
             rhost3.stringValue = myParent!.def_remote_host[2]
-            lport3.stringValue = String(myParent!.def_remote_port[2])
+            lport3.stringValue = String(myParent!.def_local_port[2])
             rport3.stringValue = String(myParent!.def_remote_port[2])
             rhost4.stringValue = myParent!.def_remote_host[3]
-            lport4.stringValue = String(myParent!.def_remote_port[3])
+            lport4.stringValue = String(myParent!.def_local_port[3])
             rport4.stringValue = String(myParent!.def_remote_port[3])
        }
     }

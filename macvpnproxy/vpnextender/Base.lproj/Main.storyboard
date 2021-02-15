@@ -418,8 +418,6 @@
                         <outlet property="lport2" destination="Fcc-yb-qOE" id="Nhw-cM-LVc"/>
                         <outlet property="lport3" destination="Bqq-Bx-6D4" id="Om3-K7-DkO"/>
                         <outlet property="lport4" destination="xmv-wl-l8j" id="UFA-re-eY8"/>
-                        <outlet property="remote_host" destination="s0Q-Kj-ZSN" id="rDe-SS-QNe"/>
-                        <outlet property="remote_port" destination="Bnr-M9-xyW" id="UOR-66-Fh1"/>
                         <outlet property="rhost1" destination="s0Q-Kj-ZSN" id="gil-1b-xXW"/>
                         <outlet property="rhost2" destination="UBJ-OV-HDf" id="7Vr-vl-LIx"/>
                         <outlet property="rhost3" destination="LYE-8E-5fZ" id="bR6-2j-i2E"/>
